@@ -265,7 +265,7 @@
              <p class="text-xs text-gray-500 mt-2">Assumes first row contains headers and first column contains labels or dates.</p>
         </div>
 
-                <div id="configSection" class="mb-6 pb-6 hidden">
+                <div id="configSection" class="mb-6 pb-6">
                     <h2 class="panel-title">2. Configuration</h2>
              <div class="mb-6 border-b border-gray-200 pb-4">
                  <h3 class="text-md font-medium text-gray-800 mb-3">Display Options</h3>
@@ -463,18 +463,42 @@
             <!-- Right Panel - Data Preview & Chart -->
             <div class="right-panel">
                 <!-- Data Preview -->
-                <div id="dataTableContainer" class="hidden">
-                    <div class="flex justify-between items-center mb-2">
-                        <h3 class="panel-title mb-0">Data Preview</h3>
-                        <span id="csvFilename" class="text-xs text-gray-500"></span>
+                <div id="dataTableContainer">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-lg font-semibold">Data Table</h3>
+                        <div class="flex items-center gap-3">
+                            <span id="csvFilename" class="text-xs text-gray-500"></span>
+                            <button id="exportTableBtn" class="px-3 py-1 bg-green-600 text-white text-sm rounded-md shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500">
+                                Export as CSV
+                            </button>
+                        </div>
                     </div>
-                    <div class="data-table-scroll-container overflow-y-auto max-h-[200px] border border-gray-200 rounded-lg shadow-sm">
-                        <div class="overflow-x-auto relative">
-                            <table id="dataTable" class="min-w-full divide-y divide-gray-200 border-collapse">
-                                <thead class="bg-gray-50"></thead>
-                                <tbody class="bg-white divide-y divide-gray-200"></tbody>
+                    <div class="overflow-auto border border-gray-200 rounded-md shadow-sm">
+                        <div id="defaultTableContainer">
+                            <div class="mb-2 p-2 flex justify-end">
+                                <button id="generateFromTableBtn" class="px-3 py-1 bg-blue-600 text-white text-sm rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                    Generate Chart from Table
+                                </button>
+                            </div>
+                            <table id="defaultTable" class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th scope="col" class="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">#</th>
+                                        <th scope="col" class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">A</th>
+                                        <th scope="col" class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">B</th>
+                                        <th scope="col" class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">C</th>
+                                        <th scope="col" class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">D</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-200" id="defaultTableBody">
+                                    <!-- Will be filled with 4 rows programmatically -->
+                                </tbody>
                             </table>
                         </div>
+                        <table id="dataTable" class="min-w-full divide-y divide-gray-200" style="display: none;">
+                            <thead class="bg-gray-50"></thead>
+                            <tbody class="bg-white divide-y divide-gray-200"></tbody>
+                        </table>
                     </div>
                 </div>
 
@@ -703,12 +727,21 @@
             document.getElementById('chartWidthInput').value = '800';
             document.getElementById('chartHeightInput').value = '500';
             
-            if (configSection) configSection.classList.add('hidden');
-            if (dataTableContainer) dataTableContainer.classList.add('hidden');
-            // Clear color assignments
+            // Don't hide config section and data table container
+            // if (configSection) configSection.classList.add('hidden');
+            // if (dataTableContainer) dataTableContainer.classList.add('hidden');
+            
+            // Reset table to initial state
             if (colorAssignmentContainer) colorAssignmentContainer.innerHTML = '';
             if (dataTableHead) dataTableHead.innerHTML = '';
             if (dataTableBody) dataTableBody.innerHTML = '';
+            
+            // Show the no data message and hide the table
+            const noDataMessage = document.getElementById('noDataMessage');
+            const dataTable = document.getElementById('dataTable');
+            if (noDataMessage) noDataMessage.style.display = 'block';
+            if (dataTable) dataTable.style.display = 'none';
+            
             // Clear CSV filename display
             if (csvFilenameDisplay) csvFilenameDisplay.textContent = '';
             
@@ -993,6 +1026,13 @@
         function displayDataTable(displayHeaders, tableData, dataUsesHeaders, headerRowObj) {
             if (!dataTableHead || !dataTableBody || !displayHeaders) return;
             
+            // Hide the no data message and show the table
+            const noDataMessage = document.getElementById('noDataMessage');
+            const dataTable = document.getElementById('dataTable');
+            
+            if (noDataMessage) noDataMessage.style.display = 'none';
+            if (dataTable) dataTable.style.display = 'table';
+            
             console.log("Displaying table. Headers:", displayHeaders);
             dataTableHead.innerHTML = '';
             dataTableBody.innerHTML = '';
@@ -1226,7 +1266,7 @@
             noteDiv.textContent = 'Note: Click on any cell to edit its value. Right-click on cells, headers, or row numbers for add/delete options. You can also copy data from a spreadsheet and paste it into the table.';
             dataTableContainer.appendChild(noteDiv);
             
-            dataTableContainer.classList.remove('hidden');
+            // dataTableContainer.classList.remove('hidden'); // Already visible now
         }
 
         // Function to show context menu with appropriate options
@@ -2823,7 +2863,7 @@
                         displayDataTable(displayHeaders, displayData, displayDataUsesHeaders, null);
 
                         // Show configuration section and prepare chart
-                        configSection.classList.remove('hidden'); 
+                        // configSection.classList.remove('hidden'); // Already visible now
                         chartTypeSelect.disabled = false;
                         colorPaletteSelect.disabled = false;
                         toggleChartSettingsVisibility();
@@ -3511,6 +3551,292 @@
             showStatus(`Chart dimensions set to ${chartWidth}x${chartHeight}`);
         }
 
+        // Function to initialize the default table
+        function initializeDefaultTable() {
+            const tableBody = document.getElementById('defaultTableBody');
+            if (!tableBody) return;
+            
+            tableBody.innerHTML = '';
+            
+            // Create 4 rows
+            for (let row = 0; row < 4; row++) {
+                const tr = document.createElement('tr');
+                tr.className = row % 2 === 0 ? 'bg-white' : 'bg-gray-50'; // Zebra striping
+                
+                // Row number cell
+                const thRowNum = document.createElement('th');
+                thRowNum.scope = 'row';
+                thRowNum.className = 'px-3 py-2 whitespace-nowrap text-sm text-gray-500 text-center';
+                thRowNum.textContent = row + 1;
+                thRowNum.dataset.rowIndex = row;
+                tr.appendChild(thRowNum);
+                
+                // Create 4 data cells per row
+                for (let col = 0; col < 4; col++) {
+                    const td = document.createElement('td');
+                    td.className = 'px-3 py-2 whitespace-nowrap text-sm text-gray-700';
+                    
+                    if (col === 0) {
+                        // First column is for labels
+                        td.className += ' font-medium';
+                        td.textContent = row === 0 ? 'Category ' + (row + 1) : '';
+                    } else {
+                        // Data columns
+                        td.textContent = '';
+                    }
+                    
+                    td.contentEditable = 'true';
+                    td.dataset.rowIndex = row;
+                    td.dataset.colIndex = col;
+                    
+                    tr.appendChild(td);
+                }
+                
+                tableBody.appendChild(tr);
+            }
+        }
+
+        // Function to generate chart from the default table
+        function generateChartFromDefaultTable() {
+            const tableBody = document.getElementById('defaultTableBody');
+            if (!tableBody) return;
+            
+            // Create data structure from table
+            const rows = tableBody.querySelectorAll('tr');
+            const data = [];
+            const headers = ['0', '1', '2', '3']; // Column indices as headers
+            
+            rows.forEach((row, rowIndex) => {
+                const rowData = {};
+                const cells = row.querySelectorAll('td');
+                
+                cells.forEach((cell, colIndex) => {
+                    rowData[colIndex.toString()] = cell.textContent.trim();
+                });
+                
+                data.push(rowData);
+            });
+            
+            // If we have data, process it
+            if (data.length > 0) {
+                // Update global variables
+                parsedRawData = data;
+                originalHeaders = headers;
+                
+                // Enable chart controls
+                chartTypeSelect.disabled = false;
+                colorPaletteSelect.disabled = false;
+                
+                // Hide the default table and show the actual data table
+                document.getElementById('defaultTableContainer').style.display = 'none';
+                document.getElementById('dataTable').style.display = 'table';
+                
+                // Display the data in the formatted table
+                displayDataTable(headers, data, true, null);
+                
+                // Analyze data and generate chart
+                const isTransposed = toggleTransposeCheckbox.checked;
+                const useFirstRowAsHeaders = toggleUseFirstRowAsHeadersCheckbox.checked;
+                const chartData = analyzeData(data, headers, isTransposed, false, 'YYYY-MM-DD');
+                
+                if (chartData) {
+                    generateChart(chartData.labels, chartData.datasets);
+                    showStatus("Chart generated from table data");
+                } else {
+                    showError("Could not generate chart: invalid or insufficient data");
+                }
+            } else {
+                showError("No data to generate chart from");
+            }
+        }
+
+        // Add to the document ready or window.onload function
+        window.addEventListener('DOMContentLoaded', function() {
+            // Initialize the default table
+            initializeDefaultTable();
+            
+            // Add event listener for the generate chart button
+            const generateBtn = document.getElementById('generateFromTableBtn');
+            if (generateBtn) {
+                generateBtn.addEventListener('click', generateChartFromDefaultTable);
+            }
+        });
+
+        // Update the resetUI function to reset to the default table state
+        function resetUI() {
+            // ... existing resetUI code ...
+            
+            // Show the default table and hide the data table
+            const defaultTableContainer = document.getElementById('defaultTableContainer');
+            const dataTable = document.getElementById('dataTable');
+            
+            if (defaultTableContainer) defaultTableContainer.style.display = 'block';
+            if (dataTable) dataTable.style.display = 'none';
+            
+            // Reset the default table
+            initializeDefaultTable();
+            
+            // ... rest of existing resetUI code ...
+        }
+
+        // Update the processFile function to hide the default table when a CSV is loaded
+        function processFile(file) {
+            // ... existing code ...
+            
+            // Hide the default table
+            const defaultTableContainer = document.getElementById('defaultTableContainer');
+            if (defaultTableContainer) defaultTableContainer.style.display = 'none';
+            
+            // ... rest of existing processFile code ...
+        }
+
+        // Add event listener for export button
+        const exportTableBtn = document.getElementById('exportTableBtn');
+        if (exportTableBtn) {
+            exportTableBtn.addEventListener('click', exportTableAsCSV);
+        }
+        
+        // Function to initialize the default table
+        function initializeDefaultTable() {
+            const tableBody = document.getElementById('defaultTableBody');
+            if (!tableBody) return;
+            
+            tableBody.innerHTML = '';
+            
+            // Create 4 rows
+            for (let row = 0; row < 4; row++) {
+                const tr = document.createElement('tr');
+                tr.className = row % 2 === 0 ? 'bg-white' : 'bg-gray-50'; // Zebra striping
+                
+                // Row number cell
+                const thRowNum = document.createElement('th');
+                thRowNum.scope = 'row';
+                thRowNum.className = 'px-3 py-2 whitespace-nowrap text-sm text-gray-500 text-center';
+                thRowNum.textContent = row + 1;
+                thRowNum.dataset.rowIndex = row;
+                tr.appendChild(thRowNum);
+                
+                // Create 4 data cells per row
+                for (let col = 0; col < 4; col++) {
+                    const td = document.createElement('td');
+                    td.className = 'px-3 py-2 whitespace-nowrap text-sm text-gray-700';
+                    
+                    if (col === 0) {
+                        // First column is for labels
+                        td.className += ' font-medium';
+                        td.textContent = row === 0 ? 'Category ' + (row + 1) : '';
+                    } else {
+                        // Data columns
+                        td.textContent = '';
+                    }
+                    
+                    td.contentEditable = 'true';
+                    td.dataset.rowIndex = row;
+                    td.dataset.colIndex = col;
+                    
+                    tr.appendChild(td);
+                }
+                
+                tableBody.appendChild(tr);
+            }
+        }
+
+        // Function to generate chart from the default table
+        function generateChartFromDefaultTable() {
+            const tableBody = document.getElementById('defaultTableBody');
+            if (!tableBody) return;
+            
+            // Create data structure from table
+            const rows = tableBody.querySelectorAll('tr');
+            const data = [];
+            const headers = ['0', '1', '2', '3']; // Column indices as headers
+            
+            rows.forEach((row, rowIndex) => {
+                const rowData = {};
+                const cells = row.querySelectorAll('td');
+                
+                cells.forEach((cell, colIndex) => {
+                    rowData[colIndex.toString()] = cell.textContent.trim();
+                });
+                
+                data.push(rowData);
+            });
+            
+            // If we have data, process it
+            if (data.length > 0) {
+                // Update global variables
+                parsedRawData = data;
+                originalHeaders = headers;
+                
+                // Enable chart controls
+                chartTypeSelect.disabled = false;
+                colorPaletteSelect.disabled = false;
+                
+                // Hide the default table and show the actual data table
+                document.getElementById('defaultTableContainer').style.display = 'none';
+                document.getElementById('dataTable').style.display = 'table';
+                
+                // Display the data in the formatted table
+                displayDataTable(headers, data, true, null);
+                
+                // Analyze data and generate chart
+                const isTransposed = toggleTransposeCheckbox.checked;
+                const useFirstRowAsHeaders = toggleUseFirstRowAsHeadersCheckbox.checked;
+                const chartData = analyzeData(data, headers, isTransposed, false, 'YYYY-MM-DD');
+                
+                if (chartData) {
+                    generateChart(chartData.labels, chartData.datasets);
+                    showStatus("Chart generated from table data");
+                } else {
+                    showError("Could not generate chart: invalid or insufficient data");
+                }
+            } else {
+                showError("No data to generate chart from");
+            }
+        }
+
+        // Initialize the default table when the page loads
+        window.addEventListener('DOMContentLoaded', function() {
+            // Initialize the default table
+            initializeDefaultTable();
+            
+            // Add event listener for the generate chart button
+            const generateBtn = document.getElementById('generateFromTableBtn');
+            if (generateBtn) {
+                generateBtn.addEventListener('click', generateChartFromDefaultTable);
+            }
+        });
+        
+        // Update the resetUI function to show default table instead of noDataMessage
+        const originalResetUI = resetUI;
+        resetUI = function() {
+            // Call original reset function first
+            originalResetUI();
+            
+            // Show the default table and hide the data table
+            const defaultTableContainer = document.getElementById('defaultTableContainer');
+            const dataTable = document.getElementById('dataTable');
+            
+            if (defaultTableContainer) defaultTableContainer.style.display = 'block';
+            if (dataTable) dataTable.style.display = 'none';
+            
+            // Reset the default table
+            initializeDefaultTable();
+        };
+        
+        // Update the processFile function to hide the default table when a CSV is loaded
+        const originalProcessFile = processFile;
+        processFile = function(file) {
+            // Call original processFile function
+            originalProcessFile(file);
+            
+            // Hide the default table
+            const defaultTableContainer = document.getElementById('defaultTableContainer');
+            if (defaultTableContainer) defaultTableContainer.style.display = 'none';
+        };
+        
+        // Initialize the default table on page load
+        initializeDefaultTable();
     </script>
 </body>
 </html>
