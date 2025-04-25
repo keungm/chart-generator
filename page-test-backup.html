@@ -1,0 +1,1103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enhanced CSV Chart Generator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-moment@1.0.0/dist/chartjs-adapter-moment.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        #chartContainer { width: 100%; max-width: 100%; height: 60vh; min-height: 300px; overflow: auto; margin: 1rem auto 2rem auto; background-color: #f9fafb; border-radius: 0.5rem; padding: 1rem; box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06); position: relative; }
+        #dataTableContainer { max-height: 300px; overflow-y: auto; margin-top: 1rem; }
+        #myChart { display: block; }
+        button:disabled, input:disabled, select:disabled, input[type=checkbox]:disabled + .toggle-slider { opacity: 0.5; cursor: not-allowed; }
+        input[type="file"]::file-selector-button { margin-right: 0.5rem; display: inline-block; font-weight: 500; color: #ffffff; background-color: #3b82f6; border: 1px solid #3b82f6; border-radius: 0.375rem; padding: 0.5rem 1rem; cursor: pointer; transition: background-color 0.2s ease-in-out; }
+        input[type="file"]::file-selector-button:hover { background-color: #2563eb; }
+        input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        input[type=number] { -moz-appearance: textfield; }
+        input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; height: 8px; background: #ddd; border-radius: 5px; outline: none; opacity: 0.7; -webkit-transition: .2s; transition: opacity .2s; }
+        input[type=range]:hover { opacity: 1; }
+        input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 18px; height: 18px; background: #3b82f6; border-radius: 50%; cursor: pointer; }
+        input[type=range]::-moz-range-thumb { width: 18px; height: 18px; background: #3b82f6; border-radius: 50%; cursor: pointer; border: none; }
+        #dataTable th, #dataTable td { padding: 0.5rem 0.75rem; text-align: left; font-size: 0.875rem; border-bottom: 1px solid #e5e7eb; white-space: nowrap; }
+        #dataTable thead th { background-color: #f3f4f6; font-weight: 600; color: #374151; position: sticky; top: 0; z-index: 11; }
+        #dataTable tbody tr:nth-child(even) { background-color: #f9fafb; }
+        #dataTable thead th:first-child, #dataTable tbody th:first-child { position: sticky; left: 0; background-color: #f3f4f6; z-index: 12; min-width: 50px; text-align: center; border-right: 1px solid #e5e7eb; }
+        #dataTable tbody th:first-child { font-weight: normal; color: #4b5563; background-color: #f9fafb; z-index: 10;}
+        #dataTable tbody tr:nth-child(even) th:first-child { background-color: #f3f4f6; }
+        /* Toggle Switch Styles */
+        .toggle-label { display: flex; align-items: center; cursor: pointer; min-height: 20px; }
+        .toggle-label span:first-child { flex-shrink: 0; padding-right: 5px;}
+        .toggle-label.disabled { cursor: not-allowed; color: #9ca3af; }
+        .toggle-switch { position: relative; display: inline-block; width: 40px; height: 20px; margin-left: auto; }
+        .toggle-switch input { opacity: 0; width: 0; height: 0; }
+        .toggle-slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; border-radius: 20px; transition: .4s; }
+        .toggle-slider:before { position: absolute; content: ""; height: 14px; width: 14px; left: 3px; bottom: 3px; background-color: white; border-radius: 50%; transition: .4s; }
+        input:checked + .toggle-slider { background-color: #3b82f6; }
+        input:checked + .toggle-slider:before { transform: translateX(20px); }
+        input:disabled + .toggle-slider { background-color: #e5e7eb; cursor: not-allowed; }
+        /* Drag and Drop Zone */
+        #dropZone { transition: all 0.3s ease; }
+        #dropZone.drag-active { border-color: #3b82f6; background-color: #f0f7ff; }
+    </style>
+</head>
+<body class="bg-gray-100 p-4 md:p-8 min-h-screen flex flex-col items-center">
+
+    <div class="w-full max-w-6xl mx-auto bg-white p-6 md:p-8 rounded-lg shadow-xl">
+        <h1 class="text-2xl md:text-3xl font-bold mb-6 text-center text-gray-800">Enhanced CSV Chart Generator</h1>
+
+        <div id="messageArea" class="mb-4 p-3 rounded-md text-sm hidden bg-red-100 text-red-700 border border-red-200"></div>
+        <div id="statusMessageArea" class="mb-4 p-3 rounded-md text-sm hidden bg-blue-100 text-blue-700 border border-blue-200"></div>
+
+        <div class="mb-6 border-b pb-6 border-gray-200">
+            <h2 class="block mb-2 text-lg font-semibold text-gray-700">1. Upload CSV File</h2>
+            <button id="downloadSampleBtn" class="text-blue-600 hover:text-blue-800 text-sm font-medium mb-4 flex items-center">
+                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                </svg>
+                Download Sample CSV
+            </button>
+            
+            <div id="dropZone" class="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-lg p-4 mb-4 cursor-pointer hover:border-blue-400 transition-colors">
+                <svg class="w-8 h-8 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                </svg>
+                <p class="text-xs text-gray-600 mb-1">Drag and drop your CSV file here</p>
+                <p class="text-xs text-gray-500">or</p>
+                <input type="file" id="csvFile" accept=".csv" class="hidden"/>
+                <label for="csvFile" class="mt-2 bg-blue-50 text-blue-700 px-3 py-1 rounded-md text-xs font-medium hover:bg-blue-100 cursor-pointer transition-colors">
+                    Select File
+                </label>
+            </div>
+            <p class="text-xs text-gray-500 mt-2">Assumes first row contains headers and first column contains labels or dates.</p>
+            <div id="dataTableContainer" class="hidden">
+                <div class="border border-gray-200 rounded-lg shadow-sm overflow-hidden">
+                    <div class="overflow-x-auto relative">
+                        <table id="dataTable" class="min-w-full divide-y divide-gray-200 border-collapse">
+                            <thead class="bg-gray-50"></thead>
+                            <tbody class="bg-white divide-y divide-gray-200"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="configSection" class="mb-6 border-b pb-6 border-gray-200 hidden">
+            <h2 class="block mb-4 text-lg font-semibold text-gray-700">2. Configuration</h2>
+            
+            <div class="mb-6">
+                <label for="chartTitleInput" class="block text-sm font-medium text-gray-700">Chart Title:</label>
+                <input type="text" id="chartTitleInput" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+            </div>
+
+            <div class="mb-6 border-b border-gray-200 pb-4">
+                <h3 class="text-md font-medium text-gray-800 mb-3">Display Options</h3>
+                <div class="space-y-3">
+                    <label class="toggle-label text-sm text-gray-700" for="toggleTranspose">
+                        <span>Transpose Rows/Columns</span>
+                        <div class="toggle-switch"> <input type="checkbox" id="toggleTranspose"> <span class="toggle-slider"></span> </div>
+                    </label>
+                    <label class="toggle-label text-sm text-gray-700" for="toggleDates">
+                        <span>Treat first column as dates</span>
+                        <div class="toggle-switch"> <input type="checkbox" id="toggleDates"> <span class="toggle-slider"></span> </div>
+                    </label>
+                    <div id="dateFormatContainer" class="mt-2 hidden">
+                        <label for="dateFormatInput" class="block text-sm font-medium text-gray-700">Date Format:</label>
+                        <input type="text" id="dateFormatInput" value="YYYY-MM-DD" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                        <p class="text-xs text-gray-500 mt-1">Examples: YYYY-MM-DD, MM/DD/YYYY, DD-MM-YYYY</p>
+                    </div>
+                </div>
+            </div>
+
+            <h3 class="text-md font-medium text-gray-800 mb-3">Chart Settings</h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-4">
+                <div>
+                    <label for="chartTypeSelect" class="block mb-1 text-sm font-medium text-gray-700">Chart Type:</label>
+                    <select id="chartTypeSelect" disabled class="block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                        <option value="column" selected>Column Chart</option>
+                        <option value="line">Line Chart</option>
+                        <option value="bar">Bar Chart (Horizontal)</option>
+                        <option value="pie">Pie Chart</option>
+                        <option value="area">Area Chart</option>
+                        <option value="scatter">Scatter Plot</option>
+                    </select>
+                </div>
+                <div id="barSettings" class="col-span-1 md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label for="barPercentageInput" class="block mb-1 text-sm font-medium text-gray-700">Bar Width (%): <span id="barPercValue" class="text-xs">0.9</span></label>
+                        <input type="range" id="barPercentageInput" min="0.1" max="1" step="0.05" value="0.9" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                    </div>
+                    <div>
+                        <label for="categoryPercentageInput" class="block mb-1 text-sm font-medium text-gray-700">Category Spacing (%): <span id="catPercValue" class="text-xs">0.8</span></label>
+                        <input type="range" id="categoryPercentageInput" min="0.1" max="1" step="0.05" value="0.8" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                    </div>
+                </div>
+            </div>
+            <p class="text-xs text-gray-500 mt-2">Adjust chart type and bar settings (if applicable).</p>
+        </div>
+
+        <div class="mb-6 border-b pb-6 border-gray-200">
+            <h2 class="block mb-2 text-lg font-semibold text-gray-700">3. Chart Preview</h2>
+            <div id="chartContainer">
+                <canvas id="myChart"></canvas>
+                <p id="chartPlaceholder" class="absolute inset-0 flex items-center justify-center text-gray-500 text-center p-4">Upload a CSV file to generate the chart.</p>
+            </div>
+        </div>
+
+        <div class="text-center">
+            <h2 class="block mb-4 text-lg font-semibold text-gray-700">4. Download</h2>
+            <p class="text-sm text-gray-500 mb-3">Download the generated chart as a PNG image (transparent background) using default dimensions.</p>
+            <button id="downloadBtn" disabled class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded-md shadow transition duration-150 ease-in-out disabled:bg-gray-400"> Download Chart (PNG) </button>
+        </div>
+    </div>
+
+    <script>
+        // --- Set Chart.js Global Font ---
+        Chart.defaults.font.family = "'Inter', sans-serif";
+        Chart.defaults.font.size = 12;
+
+        // --- Define White Background Plugin ---
+        const whiteBackgroundPlugin = { 
+            id: 'whiteBackground', 
+            beforeDraw: (chart, args, options) => { 
+                const {ctx, width, height} = chart; 
+                ctx.save(); 
+                ctx.fillStyle = options.color || '#ffffff'; 
+                ctx.fillRect(0, 0, width, height); 
+                ctx.restore(); 
+            } 
+        };
+
+        // --- DOM Elements ---
+        const csvFileInput = document.getElementById('csvFile');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const chartContainer = document.getElementById('chartContainer');
+        const chartCanvas = document.getElementById('myChart');
+        const messageArea = document.getElementById('messageArea');
+        const statusMessageArea = document.getElementById('statusMessageArea');
+        const chartPlaceholder = document.getElementById('chartPlaceholder');
+        const configSection = document.getElementById('configSection');
+        const chartTypeSelect = document.getElementById('chartTypeSelect');
+        const barSettingsDiv = document.getElementById('barSettings');
+        const barPercentageInput = document.getElementById('barPercentageInput');
+        const categoryPercentageInput = document.getElementById('categoryPercentageInput');
+        const barPercValueSpan = document.getElementById('barPercValue');
+        const catPercValueSpan = document.getElementById('catPercValue');
+        const dataTableContainer = document.getElementById('dataTableContainer');
+        const dataTableHead = document.querySelector('#dataTable thead');
+        const dataTableBody = document.querySelector('#dataTable tbody');
+        const toggleTransposeCheckbox = document.getElementById('toggleTranspose');
+        const toggleDatesCheckbox = document.getElementById('toggleDates');
+        const dateFormatContainer = document.getElementById('dateFormatContainer');
+        const dateFormatInput = document.getElementById('dateFormatInput');
+        const chartTitleInput = document.getElementById('chartTitleInput');
+        const dropZone = document.getElementById('dropZone');
+        const downloadSampleBtn = document.getElementById('downloadSampleBtn');
+
+        // --- Global Variables ---
+        let chartInstance = null;
+        let originalHeaders = [];
+        let originalFirstRowDataObject = null;
+        let parsedRawData = [];
+        let isTransposed = false;
+        let treatFirstColAsDates = false;
+        let dateFormat = 'YYYY-MM-DD';
+        let currentChartData = { labels: [], datasets: [] };
+        let currentChartOptions = {};
+
+        // --- Default values ---
+        const DOWNLOAD_WIDTH = 1280;
+        const DOWNLOAD_HEIGHT = 720;
+        const DEFAULT_BAR_PERC = 0.9;
+        const DEFAULT_CAT_PERC = 0.8;
+
+        // --- Color Palette ---
+        const colorPalette = [
+            'rgba(54, 162, 235, 0.6)', 'rgba(255, 99, 132, 0.6)', 
+            'rgba(75, 192, 192, 0.6)', 'rgba(255, 206, 86, 0.6)', 
+            'rgba(153, 102, 255, 0.6)', 'rgba(255, 159, 64, 0.6)', 
+            'rgba(99, 255, 132, 0.6)', 'rgba(162, 54, 235, 0.6)', 
+            'rgba(235, 162, 54, 0.6)'
+        ];
+        const borderColorPalette = colorPalette.map(color => color.replace('0.6', '1'));
+
+        // --- Functions ---
+        function showError(message) {
+            messageArea.textContent = message; 
+            messageArea.classList.remove('hidden'); 
+            statusMessageArea.classList.add('hidden');
+        }
+
+        function showStatus(message) {
+            statusMessageArea.textContent = message; 
+            statusMessageArea.classList.remove('hidden'); 
+            messageArea.classList.add('hidden');
+        }
+
+        function hideMessages() {
+            messageArea.classList.add('hidden'); 
+            statusMessageArea.classList.add('hidden');
+        }
+
+        function resetUI() {
+            configSection.classList.add('hidden'); 
+            dataTableContainer.classList.add('hidden'); 
+            dataTableHead.innerHTML = ''; 
+            dataTableBody.innerHTML = '';
+            chartTypeSelect.value = 'column'; 
+            barPercentageInput.value = DEFAULT_BAR_PERC; 
+            categoryPercentageInput.value = DEFAULT_CAT_PERC; 
+            barPercValueSpan.textContent = DEFAULT_BAR_PERC; 
+            catPercValueSpan.textContent = DEFAULT_CAT_PERC; 
+            barSettingsDiv.classList.add('hidden');
+            chartTypeSelect.disabled = true; 
+            downloadBtn.disabled = true;
+            toggleDatesCheckbox.checked = false;
+            dateFormatContainer.classList.add('hidden');
+            chartTitleInput.value = '';
+            
+            if (chartInstance) { 
+                chartInstance.destroy(); 
+                chartInstance = null; 
+            } 
+            chartPlaceholder.classList.remove('hidden'); 
+            const ctx = chartCanvas.getContext('2d'); 
+            if (ctx) { 
+                ctx.clearRect(0, 0, chartCanvas.width, chartCanvas.height); 
+            }
+            chartCanvas.style.width = null; 
+            chartCanvas.style.height = null;
+            originalHeaders = []; 
+            parsedRawData = []; 
+            originalFirstRowDataObject = null;
+            isTransposed = toggleTransposeCheckbox.checked;
+            treatFirstColAsDates = false;
+            currentChartData = { labels: [], datasets: [] }; 
+            currentChartOptions = {};
+            hideMessages();
+        }
+
+        function isNumeric(value) {
+            if (typeof value === 'number' && !isNaN(value)) return true;
+            if (typeof value !== 'string') return false;
+            if (value.trim() === '' || value === null) return false;
+            const cleanedVal = value.replace(/,/g, '');
+            return !isNaN(parseFloat(cleanedVal)) && isFinite(cleanedVal.trim() === '' ? NaN : cleanedVal);
+        }
+
+        function parseNumericValue(value) {
+            if (typeof value === 'number' && !isNaN(value)) return value;
+            if (typeof value !== 'string') return null;
+            const cleanedVal = value.replace(/,/g, '');
+            const num = parseFloat(cleanedVal);
+            return isNaN(num) ? null : num;
+        }
+
+        function analyzeData(data, currentHeaders, transposeEnabled) {
+            const headersWereUsed = true;
+            const useColAForLabels = !transposeEnabled;
+
+            console.log("Analyzing data. headersWereUsed:", headersWereUsed, "useColAForLabels:", useColAForLabels, "transposeEnabled:", transposeEnabled);
+            if (!currentHeaders || currentHeaders.length < 2 || !data || data.length === 0) {
+                showError("CSV must contain at least two columns (Label, Value)."); 
+                return null;
+            }
+
+            let labels = [];
+            let datasets = [];
+            const baseFontSize = Chart.defaults.font.size || 12;
+
+            if (!transposeEnabled) {
+                console.log("Analyzing in standard orientation");
+                const labelHeader = currentHeaders[0];
+                const labelHeaderDisplay = (typeof labelHeader === 'string' ? labelHeader.trim() : labelHeader) || "[Empty Header]";
+                showStatus(`Analyzing data... Using column '${labelHeaderDisplay}' as Label column.`);
+                
+                // Handle date parsing if enabled
+                if (treatFirstColAsDates) {
+                    labels = data.map(row => {
+                        const dateStr = String(row[labelHeader] ?? '');
+                        return moment(dateStr, dateFormat).isValid() ? 
+                               moment(dateStr, dateFormat).toDate() : 
+                               dateStr;
+                    });
+                } else {
+                    labels = data.map(row => String(row[labelHeader] ?? ''));
+                }
+                
+                console.log("Generated labels:", labels.slice(0, 5));
+
+                // Data starts from the second column (index 1)
+                const potentialDataHeaders = currentHeaders.slice(1);
+
+                potentialDataHeaders.forEach((header, index) => {
+                    const dataIndex = index + 1;
+                    let values = data.map(row => row[header]);
+                    console.log(`Std - Processing column ${dataIndex} (Header: ${header}). First few values:`, values.slice(0, 3));
+                    let numericCount = 0; 
+                    const sampleSize = Math.min(values.length, 10);
+                    if (sampleSize > 0) { 
+                        for (let i = 0; i < sampleSize; i++) { 
+                            if (isNumeric(values[i])) { 
+                                numericCount++; 
+                            } 
+                        } 
+                    }
+                    const isColNumeric = sampleSize === 0 || (numericCount / sampleSize) > 0.5;
+                    console.log(`  Numeric check result: ${numericCount}/${sampleSize} => ${isColNumeric}`);
+                    if (isColNumeric) {
+                        const numericColumnData = values.map(val => parseNumericValue(val));
+                        const containsNumbers = numericColumnData.some(val => val !== null);
+                        console.log(`  Contains valid numbers after full parse: ${containsNumbers}`);
+                        if (containsNumbers) {
+                            const colorIndex = datasets.length;
+                            datasets.push({ 
+                                label: String(header ?? `Column ${dataIndex + 1}`), 
+                                data: numericColumnData, 
+                                backgroundColor: colorPalette[colorIndex % colorPalette.length], 
+                                borderColor: borderColorPalette[colorIndex % colorPalette.length], 
+                                borderWidth: 1 
+                            });
+                            console.log(`  Added dataset for ${header}. Length: ${numericColumnData.length}`);
+                        } else { 
+                            console.log(`  Column '${header}' skipped (no numeric values found after full parse).`); 
+                        }
+                    } else { 
+                        console.log(`  Column '${header}' skipped (not numeric based on sample).`); 
+                    }
+                });
+            } else {
+                // --- Transposed Orientation Analysis ---
+                showStatus("Analyzing transposed data... Rows become series.");
+                let categoryHeaders = currentHeaders.slice(1);
+                const seriesLabelHeaderKey = currentHeaders[0];
+                let seriesLabelsSource = data.map(row => String(row[seriesLabelHeaderKey] ?? '')); 
+                let dataMatrix = data.map(row => categoryHeaders.map(header => parseNumericValue(row[header])));
+
+                console.log("Transposed - Categories:", categoryHeaders.slice(0,5), "Series Labels Source:", seriesLabelsSource.slice(0,5));
+                labels = categoryHeaders;
+
+                dataMatrix.forEach((rowData, rowIndex) => {
+                    if (rowData.some(val => val !== null)) {
+                        const colorIndex = datasets.length;
+                        datasets.push({ 
+                            label: seriesLabelsSource[rowIndex] || `Series ${rowIndex + 1}`, 
+                            data: rowData, 
+                            backgroundColor: colorPalette[colorIndex % colorPalette.length], 
+                            borderColor: borderColorPalette[colorIndex % colorPalette.length], 
+                            borderWidth: 1 
+                        });
+                    } else { 
+                        console.log(`Original Row ${rowIndex + 1} skipped (no numeric values found).`); 
+                    }
+                });
+                console.log(`Created ${datasets.length} datasets in transposed mode.`);
+            }
+
+            if (datasets.length === 0) { 
+                showError("No valid numeric data series found based on current settings."); 
+                return null; 
+            }
+            showStatus(`Found ${datasets.length} numeric data series. Preparing chart data...`);
+            currentChartData = { labels, datasets };
+            return currentChartData;
+        }
+
+        function getColumnLetter(index) {
+            let letter = ''; 
+            let tempIndex = index; 
+            while (tempIndex >= 0) { 
+                letter = String.fromCharCode((tempIndex % 26) + 65) + letter; 
+                tempIndex = Math.floor(tempIndex / 26) - 1; 
+            } 
+            return letter; 
+        }
+
+        function transposeData(data, headers) {
+            console.log("Transposing data (assuming headers were used)...");
+            if (!data || data.length === 0 || !headers || headers.length < 2) return { transposedData: [], transposedHeaders: [] };
+
+            const categoryHeaders = headers.slice(1);
+            const seriesLabelHeader = headers[0];
+
+            const newHeaders = [seriesLabelHeader || 'Label', ...data.map((row, index) => String(row[seriesLabelHeader] ?? `Row ${index + 1}`))];
+
+            const transposedMatrix = categoryHeaders.map(categoryHeader => {
+                const newRow = [categoryHeader];
+                data.forEach(row => { newRow.push(row[categoryHeader]); });
+                return newRow;
+            });
+
+            const transposedData = transposedMatrix.map(rowArray => {
+                const rowObj = {};
+                newHeaders.forEach((header, index) => { rowObj[header] = rowArray[index] ?? null; });
+                return rowObj;
+            });
+
+            console.log("Transposed Headers:", newHeaders);
+            console.log("Transposed Data Sample:", transposedData.slice(0, 3));
+            return { transposedData, transposedHeaders: newHeaders };
+        }
+
+        function displayDataTable(displayHeaders, tableData, dataUsesHeaders, headerRowObj) {
+            if (!dataTableHead || !dataTableBody || !displayHeaders) return;
+            
+            dataTableHead.innerHTML = '';
+            dataTableBody.innerHTML = '';
+
+            // --- Create Table Header (A, B, C...) ---
+            const theadRow = document.createElement('tr');
+            const thNum = document.createElement('th');
+            thNum.scope = 'col';
+            thNum.className = 'px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider';
+            thNum.textContent = '#';
+            theadRow.appendChild(thNum);
+
+            // Add column headers (A, B, C...)
+            const numColumns = isTransposed ? 
+                Math.max(displayHeaders.length - 1, tableData.length > 0 ? Object.keys(tableData[0]).length - 1 : 0) :
+                displayHeaders.length;
+            
+            for (let i = 0; i < numColumns; i++) {
+                const th = document.createElement('th');
+                th.scope = 'col';
+                th.className = 'px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider';
+                th.textContent = getColumnLetter(i);
+                theadRow.appendChild(th);
+            }
+            dataTableHead.appendChild(theadRow);
+
+            // --- Create Table Body ---
+            let rowNumber = 1;
+
+            // Header row (row 1) - shows actual headers (products or months)
+            const headerRow = document.createElement('tr');
+            const headerRowNum = document.createElement('th');
+            headerRowNum.scope = 'row';
+            headerRowNum.className = 'px-3 py-2 whitespace-nowrap text-sm text-gray-500 text-center';
+            headerRowNum.textContent = rowNumber++;
+            headerRow.appendChild(headerRowNum);
+
+            // First cell empty
+            const emptyHeaderCell = document.createElement('td');
+            emptyHeaderCell.className = 'px-3 py-2 whitespace-nowrap text-sm text-gray-700';
+            emptyHeaderCell.textContent = '';
+            headerRow.appendChild(emptyHeaderCell);
+
+            // Add actual headers (products or months)
+            const headersToShow = isTransposed ? displayHeaders.slice(1) : displayHeaders.slice(1);
+            headersToShow.forEach(header => {
+                const td = document.createElement('td');
+                td.className = 'px-3 py-2 whitespace-nowrap text-sm text-gray-700 font-medium';
+                td.textContent = header;
+                headerRow.appendChild(td);
+            });
+            dataTableBody.appendChild(headerRow);
+
+            // Add data rows
+            if (isTransposed) {
+                // Transposed view: each row is a product
+                tableData.forEach((rowData, rowIndex) => {
+                    const tr = document.createElement('tr');
+                    const thRowNum = document.createElement('th');
+                    thRowNum.scope = 'row';
+                    thRowNum.className = 'px-3 py-2 whitespace-nowrap text-sm text-gray-500 text-center';
+                    thRowNum.textContent = rowNumber++;
+                    tr.appendChild(thRowNum);
+
+                    // First cell is product name
+                    const productTd = document.createElement('td');
+                    productTd.className = 'px-3 py-2 whitespace-nowrap text-sm text-gray-700 font-medium';
+                    productTd.textContent = rowData[displayHeaders[0]] || `Product ${rowIndex + 1}`;
+                    tr.appendChild(productTd);
+
+                    // Subsequent cells are values
+                    displayHeaders.slice(1).forEach(header => {
+                        const td = document.createElement('td');
+                        td.className = 'px-3 py-2 whitespace-nowrap text-sm text-gray-700';
+                        td.textContent = rowData[header] ?? '';
+                        tr.appendChild(td);
+                    });
+                    dataTableBody.appendChild(tr);
+                });
+            } else {
+                // Normal view: each row is a month
+                tableData.forEach((rowData, rowIndex) => {
+                    const tr = document.createElement('tr');
+                    const thRowNum = document.createElement('th');
+                    thRowNum.scope = 'row';
+                    thRowNum.className = 'px-3 py-2 whitespace-nowrap text-sm text-gray-500 text-center';
+                    thRowNum.textContent = rowNumber++;
+                    tr.appendChild(thRowNum);
+
+                    // First cell is month name
+                    const monthTd = document.createElement('td');
+                    monthTd.className = 'px-3 py-2 whitespace-nowrap text-sm text-gray-700 font-medium';
+                    monthTd.textContent = rowData[displayHeaders[0]] || `Month ${rowIndex + 1}`;
+                    tr.appendChild(monthTd);
+
+                    // Subsequent cells are values
+                    displayHeaders.slice(1).forEach(header => {
+                        const td = document.createElement('td');
+                        td.className = 'px-3 py-2 whitespace-nowrap text-sm text-gray-700';
+                        td.textContent = rowData[header] ?? '';
+                        tr.appendChild(td);
+                    });
+                    dataTableBody.appendChild(tr);
+                });
+            }
+
+            dataTableContainer.classList.remove('hidden');
+        }
+
+        function generateChart(labels, datasets) {
+            labels = labels || currentChartData.labels; 
+            datasets = datasets || currentChartData.datasets; 
+            if (!labels || !datasets || datasets.length === 0) { 
+                showError("Cannot generate chart: missing data."); 
+                return; 
+            } 
+            
+            currentChartData = { labels, datasets }; 
+            if (!chartCanvas) { 
+                showError("Canvas element not found."); 
+                return; 
+            } 
+            
+            const ctx = chartCanvas.getContext('2d'); 
+            if (!ctx) { 
+                showError("Failed to get canvas context."); 
+                return; 
+            } 
+            
+            if (chartInstance) { 
+                chartInstance.destroy(); 
+                chartInstance = null; 
+            } 
+            
+            chartPlaceholder.classList.add('hidden'); 
+            const selectedTypeOption = chartTypeSelect.value; 
+            let chartType = 'bar'; 
+            let indexAxis = 'x'; 
+            const baseFontSize = Chart.defaults.font.size || 12; 
+            let xAxisTitleText = ''; 
+            let yAxisTitleText = 'Value'; 
+            const transposeEnabled = toggleTransposeCheckbox.checked; 
+            
+            if (transposeEnabled) { 
+                xAxisTitleText = 'Category'; 
+                yAxisTitleText = originalHeaders[0] || 'Row Value'; 
+            } else { 
+                const firstOriginalHeader = originalHeaders[0]; 
+                const trimmedFirstHeader = typeof firstOriginalHeader === 'string' ? firstOriginalHeader.trim() : firstOriginalHeader; 
+                xAxisTitleText = (trimmedFirstHeader === "" || trimmedFirstHeader == null) ? "" : firstOriginalHeader; 
+            } 
+            
+            let scalesConfig = { 
+                x: { 
+                    title: { 
+                        display: !!xAxisTitleText, 
+                        text: xAxisTitleText, 
+                        font: { size: baseFontSize + 2 } 
+                    }, 
+                    ticks: { 
+                        font: { size: baseFontSize } 
+                    } 
+                }, 
+                y: { 
+                    beginAtZero: true, 
+                    title: { 
+                        display: true, 
+                        text: yAxisTitleText, 
+                        font: { size: baseFontSize + 2 } 
+                    }, 
+                    ticks: { 
+                        font: { size: baseFontSize } 
+                    } 
+                } 
+            };
+            
+            // Handle date axis if enabled
+            if (treatFirstColAsDates && !transposeEnabled) {
+                scalesConfig = {
+                    x: {
+                        type: 'time',
+                        time: {
+                            parser: dateFormat,
+                            tooltipFormat: 'll',
+                            unit: 'day'
+                        },
+                        title: {
+                            display: true,
+                            text: 'Date',
+                            font: { size: baseFontSize + 2 }
+                        },
+                        ticks: {
+                            font: { size: baseFontSize }
+                        }
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: yAxisTitleText,
+                            font: { size: baseFontSize + 2 }
+                        },
+                        ticks: {
+                            font: { size: baseFontSize }
+                        }
+                    }
+                };
+            }
+
+            let chartSpecificOptions = {}; 
+            const barPercentage = parseFloat(barPercentageInput.value); 
+            const categoryPercentage = parseFloat(categoryPercentageInput.value); 
+            let datasetsForChart = JSON.parse(JSON.stringify(datasets)); 
+            let chartDataConfig = { labels: labels, datasets: datasetsForChart }; 
+            
+            if (selectedTypeOption === 'line') { 
+                chartType = 'line'; 
+                datasetsForChart.forEach(ds => { 
+                    ds.tension = 0.1; 
+                    ds.fill = false; 
+                }); 
+            } else if (selectedTypeOption === 'bar') { 
+                chartType = 'bar'; 
+                indexAxis = 'y'; 
+                scalesConfig = { 
+                    x: { 
+                        beginAtZero: true, 
+                        title: { 
+                            display: true, 
+                            text: yAxisTitleText, 
+                            font: { size: baseFontSize + 2 } 
+                        }, 
+                        ticks: { 
+                            font: { size: baseFontSize } 
+                        } 
+                    }, 
+                    y: { 
+                        title: { 
+                            display: !!xAxisTitleText, 
+                            text: xAxisTitleText, 
+                            font: { size: baseFontSize + 2 } 
+                        }, 
+                        ticks: { 
+                            font: { size: baseFontSize } 
+                        } 
+                    } 
+                }; 
+                datasetsForChart.forEach(ds => { 
+                    ds.barPercentage = barPercentage; 
+                    ds.categoryPercentage = categoryPercentage; 
+                }); 
+            } else if (selectedTypeOption === 'pie') { 
+                chartType = 'pie'; 
+                indexAxis = undefined; 
+                scalesConfig = {}; 
+                if (datasetsForChart.length > 0) { 
+                    const firstDataset = datasetsForChart[0]; 
+                    firstDataset.backgroundColor = colorPalette.slice(0, labels.length); 
+                    firstDataset.borderColor = '#ffffff'; 
+                    chartDataConfig = { labels: labels, datasets: [firstDataset] }; 
+                    showStatus("Displaying Pie Chart for the first data series found."); 
+                } else { 
+                    showError("No data series available for Pie Chart."); 
+                    return; 
+                } 
+            } else if (selectedTypeOption === 'column') { 
+                chartType = 'bar'; 
+                indexAxis = 'x'; 
+                datasetsForChart.forEach(ds => { 
+                    ds.barPercentage = barPercentage; 
+                    ds.categoryPercentage = categoryPercentage; 
+                }); 
+            } else if (selectedTypeOption === 'area') {
+                chartType = 'line';
+                datasetsForChart.forEach(ds => {
+                    ds.fill = true;
+                    ds.tension = 0.4;
+                });
+            } else if (selectedTypeOption === 'scatter') {
+                chartType = 'scatter';
+                datasetsForChart.forEach(ds => {
+                    ds.pointRadius = 5;
+                    ds.showLine = false;
+                });
+            }
+            
+            currentChartOptions = { 
+                responsive: true, 
+                maintainAspectRatio: false, 
+                indexAxis: indexAxis, 
+                scales: scalesConfig, 
+                plugins: { 
+                    title: {
+                        display: chartTitleInput.value !== '',
+                        text: chartTitleInput.value,
+                        font: {
+                            size: baseFontSize + 4
+                        }
+                    },
+                    legend: { 
+                        display: true, 
+                        position: 'top', 
+                        labels: { 
+                            font: { size: baseFontSize } 
+                        } 
+                    }, 
+                    tooltip: { 
+                        enabled: true 
+                    }, 
+                    whiteBackground: { 
+                        color: '#ffffff' 
+                    } 
+                }, 
+                animation: false, 
+                ...chartSpecificOptions 
+            }; 
+            
+            if (chartType === 'pie') { 
+                delete currentChartOptions.scales; 
+                delete currentChartOptions.indexAxis; 
+            } 
+            
+            try { 
+                chartInstance = new Chart(ctx, { 
+                    type: chartType, 
+                    data: chartDataConfig, 
+                    options: currentChartOptions, 
+                    plugins: [whiteBackgroundPlugin] 
+                }); 
+                downloadBtn.disabled = false; 
+                let statusMsg = `Chart generated/updated successfully (Type: ${chartTypeSelect.options[chartTypeSelect.selectedIndex].text}).`; 
+                if (chartType === 'pie' && datasets.length > 1) { 
+                    statusMsg += ` Showing data for '${datasets[0].label}'.`; 
+                } 
+                showStatus(statusMsg); 
+            } catch (error) { 
+                console.error("Chart.js error:", error); 
+                showError(`Failed to create chart: ${error.message}`); 
+                chartPlaceholder.classList.remove('hidden'); 
+                downloadBtn.disabled = true; 
+                chartInstance = null; 
+            } 
+        }
+
+        function toggleBarSettingsVisibility() { 
+            const selectedType = chartTypeSelect.value; 
+            if (selectedType === 'column' || selectedType === 'bar') { 
+                barSettingsDiv.classList.remove('hidden'); 
+            } else { 
+                barSettingsDiv.classList.add('hidden'); 
+            } 
+        }
+
+        function reprocessAndRegenerate() {
+            if (!parsedRawData || parsedRawData.length === 0) { 
+                showError("No data loaded to reprocess."); 
+                return; 
+            }
+            showStatus("Re-analyzing data and updating display...");
+
+            // Read current toggle states
+            const currentIsTransposed = toggleTransposeCheckbox.checked;
+            const currentUsingHeaders = true;
+            const currentUseColA = !currentIsTransposed;
+            treatFirstColAsDates = toggleDatesCheckbox.checked;
+
+            // Update Table Display
+            let dataForTable = parsedRawData;
+            let headersForTable = originalHeaders;
+            let headersWereUsedForTable = true;
+            let headerRowObjForTable = null;
+
+            console.log(`Reprocessing - Transpose: ${currentIsTransposed}`);
+            if (currentIsTransposed) {
+                console.log("Calling transposeData for table display...");
+                const { transposedData, transposedHeaders } = transposeData(parsedRawData, originalHeaders, true);
+                dataForTable = transposedData;
+                headersForTable = transposedHeaders;
+                headersWereUsedForTable = true;
+                console.log("Table will display transposed data.");
+            } else {
+                if(originalFirstRowDataObject) {
+                    headerRowObjForTable = originalFirstRowDataObject;
+                }
+                console.log("Table will display original data.");
+            }
+            displayDataTable(headersForTable, dataForTable, headersWereUsedForTable, headerRowObjForTable);
+
+            // Analyze Data for Chart
+            console.log("Reprocessing - Analyzing for chart...");
+            const chartData = analyzeData(parsedRawData, originalHeaders, currentIsTransposed);
+
+            // Generate Chart
+            if (chartData) {
+                console.log("Reprocessing - Generating chart...");
+                generateChart(chartData.labels, chartData.datasets);
+            } else {
+                console.log("Reprocessing - Analysis failed, clearing chart.");
+                if (chartInstance) { chartInstance.destroy(); chartInstance = null; }
+                chartPlaceholder.classList.remove('hidden');
+                downloadBtn.disabled = true;
+            }
+        }
+
+        // --- Event Listeners ---
+        csvFileInput.addEventListener('change', (event) => {
+            resetUI(); 
+            const file = event.target.files[0]; 
+            if (!file) { return; } 
+            if (!file.name.toLowerCase().endsWith('.csv')) { 
+                showError("Invalid file type."); 
+                csvFileInput.value = ''; 
+                return; 
+            }
+            
+            usingHeaders = true;
+            isTransposed = toggleTransposeCheckbox.checked;
+            treatFirstColAsDates = toggleDatesCheckbox.checked;
+
+            console.log("Parsing with headers: true"); 
+            showStatus("Parsing CSV file...");
+            Papa.parse(file, {
+                header: true,
+                skipEmptyLines: true, 
+                dynamicTyping: false,
+                complete: (results) => {
+                    let dataToProcess; 
+                    let headersToUse; 
+                    let headerRowForTableDisplay = null;
+                    
+                    if (results.errors.length > 0) { 
+                        const errorDetails = results.errors.map(err => `Row ${err.row}: ${err.message}`).join('; '); 
+                        console.error("Parsing errors:", results.errors); 
+                        showError(`Error parsing CSV: ${errorDetails.substring(0, 200)}${errorDetails.length > 200 ? '...' : ''}.`); 
+                        csvFileInput.value = ''; 
+                        return; 
+                    }
+                    
+                    if (!results.data || results.data.length === 0) { 
+                        showError("CSV file contains no data rows."); 
+                        csvFileInput.value = ''; 
+                        return; 
+                    }
+
+                    originalHeaders = results.meta.fields || []; 
+                    originalHeaders = originalHeaders.filter(h => h !== undefined && h !== null); 
+                    if (originalHeaders.length === 0) { 
+                        showError("Could not detect headers."); 
+                        return; 
+                    }
+                    
+                    if (originalHeaders.length < 2) { 
+                        showError("CSV needs at least 2 columns (labels, values)."); 
+                        return;
+                    }
+
+                    dataToProcess = results.data; 
+                    headersToUse = originalHeaders;
+                    originalFirstRowDataObject = {}; 
+                    originalHeaders.forEach(h => originalFirstRowDataObject[h] = h);
+                    headerRowForTableDisplay = originalFirstRowDataObject;
+
+                    parsedRawData = dataToProcess;
+
+                    // Initial Display uses current transpose state
+                    let initialDataForTable = parsedRawData;
+                    let initialHeadersForTable = headersToUse;
+                    let initialHeadersWereUsedForTable = true;
+                    let initialHeaderRowObj = headerRowForTableDisplay;
+
+                    if(isTransposed) {
+                        const { transposedData, transposedHeaders } = transposeData(parsedRawData, originalHeaders, true);
+                        initialDataForTable = transposedData;
+                        initialHeadersForTable = transposedHeaders;
+                        initialHeadersWereUsedForTable = true;
+                        initialHeaderRowObj = null;
+                    }
+                    
+                    displayDataTable(initialHeadersForTable, initialDataForTable, initialHeadersWereUsedForTable, initialHeaderRowObj);
+
+                    configSection.classList.remove('hidden'); 
+                    chartTypeSelect.disabled = false; 
+                    toggleBarSettingsVisibility();
+                    
+                    const chartData = analyzeData(parsedRawData, originalHeaders, isTransposed);
+                    if (chartData) { 
+                        generateChart(chartData.labels, chartData.datasets); 
+                    }
+                    else { 
+                        downloadBtn.disabled = true; 
+                        configSection.classList.remove('hidden'); 
+                        chartTypeSelect.disabled = false; 
+                        toggleBarSettingsVisibility(); 
+                    }
+                },
+                error: (error) => { 
+                    console.error("Papa Parse error:", error); 
+                    showError(`Failed to read file: ${error.message}`); 
+                    csvFileInput.value = ''; 
+                    resetUI(); 
+                }
+            });
+        });
+
+        toggleTransposeCheckbox.addEventListener('change', reprocessAndRegenerate);
+        toggleDatesCheckbox.addEventListener('change', function() {
+            treatFirstColAsDates = this.checked;
+            dateFormatContainer.classList.toggle('hidden', !this.checked);
+            reprocessAndRegenerate();
+        });
+        
+        dateFormatInput.addEventListener('change', function() {
+            dateFormat = this.value;
+            reprocessAndRegenerate();
+        });
+
+        chartTypeSelect.addEventListener('change', () => { 
+            toggleBarSettingsVisibility(); 
+            if (currentChartData.labels && currentChartData.labels.length > 0) { 
+                generateChart(currentChartData.labels, currentChartData.datasets); 
+            } 
+        });
+
+        chartTitleInput.addEventListener('input', () => {
+            if (currentChartData.labels && currentChartData.labels.length > 0) { 
+                generateChart(currentChartData.labels, currentChartData.datasets); 
+            }
+        });
+
+        barPercentageInput.addEventListener('input', (e) => { 
+            barPercValueSpan.textContent = e.target.value; 
+            if (currentChartData.labels && currentChartData.labels.length > 0) { 
+                generateChart(currentChartData.labels, currentChartData.datasets); 
+            }
+        });
+
+        categoryPercentageInput.addEventListener('input', (e) => { 
+            catPercValueSpan.textContent = e.target.value; 
+            if (currentChartData.labels && currentChartData.labels.length > 0) { 
+                generateChart(currentChartData.labels, currentChartData.datasets); 
+            }
+        });
+        
+        downloadBtn.addEventListener('click', () => {
+            if (!chartInstance || !chartCanvas || downloadBtn.disabled) { 
+                showError("Cannot download."); 
+                return; 
+            } 
+            hideMessages(); 
+            showStatus("Preparing transparent download..."); 
+            try { 
+                const width = DOWNLOAD_WIDTH; 
+                const height = DOWNLOAD_HEIGHT; 
+                const tempCanvas = document.createElement('canvas'); 
+                tempCanvas.width = width; 
+                tempCanvas.height = height; 
+                const tempCtx = tempCanvas.getContext('2d'); 
+                if (!tempCtx) { 
+                    throw new Error("Failed to get temporary context."); 
+                } 
+                
+                let downloadOptions = { 
+                    responsive: false, 
+                    maintainAspectRatio: false, 
+                    indexAxis: chartInstance.config.options.indexAxis, 
+                    scales: chartInstance.config.options.scales, 
+                    plugins: { 
+                        legend: chartInstance.config.options.plugins.legend, 
+                        tooltip: chartInstance.config.options.plugins.tooltip 
+                    }, 
+                    animation: false 
+                }; 
+                
+                const downloadConfig = { 
+                    type: chartInstance.config.type, 
+                    data: { 
+                        labels: currentChartData.labels, 
+                        datasets: currentChartData.datasets 
+                    }, 
+                    options: downloadOptions 
+                }; 
+                
+                const tempChart = new Chart(tempCtx, downloadConfig); 
+                setTimeout(() => { 
+                    try { 
+                        const imageURL = tempCanvas.toDataURL('image/png'); 
+                        const link = document.createElement('a'); 
+                        link.href = imageURL; 
+                        link.download = `chart_${width}x${height}_transparent.png`; 
+                        document.body.appendChild(link); 
+                        link.click(); 
+                        document.body.removeChild(link); 
+                        showStatus("Chart download started (PNG - Transparent)."); 
+                    } catch (renderError) { 
+                        console.error("Error generating transparent PNG:", renderError); 
+                        showError(`Failed to generate transparent PNG: ${renderError.message}.`); 
+                    } finally { 
+                        if (tempChart) { 
+                            tempChart.destroy(); 
+                        } 
+                    } 
+                }, 150); 
+            } catch (error) { 
+                console.error("Error during PNG download setup:", error); 
+                showError(`Failed to generate PNG image: ${error.message}.`); 
+                statusMessageArea.classList.add('hidden'); 
+            } 
+        });
+
+        // Drag and drop event listeners
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('border-blue-500', 'bg-blue-50');
+        });
+        
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('border-blue-500', 'bg-blue-50');
+        });
+        
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('border-blue-500', 'bg-blue-50');
+            if (e.dataTransfer.files.length) {
+                csvFileInput.files = e.dataTransfer.files;
+                const event = new Event('change');
+                csvFileInput.dispatchEvent(event);
+            }
+        });
+
+        // Sample CSV download
+        downloadSampleBtn.addEventListener('click', () => {
+            const sampleData = `Date,Product A,Product B,Product C
+2023-01-01,120,150,80
+2023-01-02,135,145,85
+2023-01-03,125,160,90
+2023-01-04,140,155,95
+2023-01-05,130,165,100`;
+            
+            const blob = new Blob([sampleData], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'chart_sample_data.csv';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+
+        // Initialize UI state
+        resetUI();
+    </script>
+</body>
+</html>

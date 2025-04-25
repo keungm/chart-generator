@@ -1,0 +1,601 @@
+<!-- This version cannot swap row and column properly -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enhanced CSV Chart Generator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-moment@1.0.0/dist/chartjs-adapter-moment.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-stacked100@1.0.0/build/index.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        #chartContainer { width: 100%; max-width: 100%; height: 60vh; min-height: 300px; overflow: auto; margin: 1rem auto 1rem auto; background-color: #f9fafb; border-radius: 0.5rem; padding: 1rem; box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06); position: relative; }
+        #dataTableContainer { max-height: 400px; overflow-y: auto; margin-top: 1.5rem; }
+        #myChart { display: block; }
+        button:disabled, input:disabled, select:disabled, input[type=checkbox]:disabled + .toggle-slider { opacity: 0.5; cursor: not-allowed; }
+        input[type="file"]::file-selector-button { display: none;}
+        input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        input[type=number] { -moz-appearance: textfield; }
+        input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; height: 8px; background: #ddd; border-radius: 5px; outline: none; opacity: 0.7; -webkit-transition: .2s; transition: opacity .2s; }
+        input[type=range]:hover { opacity: 1; }
+        input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 18px; height: 18px; background: #3b82f6; border-radius: 50%; cursor: pointer; }
+        input[type=range]::-moz-range-thumb { width: 18px; height: 18px; background: #3b82f6; border-radius: 50%; cursor: pointer; border: none; }
+        #dataTable th, #dataTable td { padding: 0.5rem 0.75rem; text-align: left; font-size: 0.875rem; border-bottom: 1px solid #e5e7eb; white-space: nowrap; }
+        #dataTable thead th { background-color: #f3f4f6; font-weight: 600; color: #374151; position: sticky; top: 0; z-index: 11; }
+        #dataTable tbody tr:nth-child(even) { background-color: #f9fafb; }
+        #dataTable thead th:first-child, #dataTable tbody th:first-child { position: sticky; left: 0; background-color: #f3f4f6; z-index: 12; min-width: 50px; text-align: center; border-right: 1px solid #e5e7eb; }
+        #dataTable tbody th:first-child { font-weight: normal; color: #4b5563; background-color: #f9fafb; z-index: 10;}
+        #dataTable tbody tr:nth-child(even) th:first-child { background-color: #f3f4f6; }
+        /* Toggle Switch Styles */
+        .toggle-label { display: flex; align-items: center; cursor: pointer; min-height: 20px; }
+        .toggle-label span:first-child { flex-shrink: 0; padding-right: 5px;}
+        .toggle-label.disabled { cursor: not-allowed; color: #9ca3af; }
+        .toggle-switch { position: relative; display: inline-block; width: 40px; height: 20px; margin-left: auto; }
+        .toggle-switch input { opacity: 0; width: 0; height: 0; }
+        .toggle-slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; border-radius: 20px; transition: .4s; }
+        .toggle-slider:before { position: absolute; content: ""; height: 14px; width: 14px; left: 3px; bottom: 3px; background-color: white; border-radius: 50%; transition: .4s; }
+        input:checked + .toggle-slider { background-color: #3b82f6; }
+        input:checked + .toggle-slider:before { transform: translateX(20px); }
+        input:disabled + .toggle-slider { background-color: #e5e7eb; cursor: not-allowed; }
+        /* Drag and Drop Zone */
+        #dropZone { transition: all 0.3s ease; padding: 1rem; }
+        #dropZone svg { width: 2.5rem; height: 2.5rem; margin-bottom: 0.25rem; }
+        #dropZone.drag-active { border-color: #3b82f6; background-color: #f0f7ff; }
+        /* Color Assignment Style */
+        .color-assign-select {
+            padding: 0.3rem 0.5rem;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            margin-left: 8px;
+            vertical-align: middle;
+            cursor: pointer;
+            max-width: 150px; /* Limit width */
+        }
+        .color-assign-option-color { /* Style for color swatch in option */
+            display: inline-block;
+            width: 1em;
+            height: 1em;
+            margin-right: 0.5em;
+            border: 1px solid #ccc;
+            vertical-align: middle;
+            border-radius: 2px;
+        }
+
+    </style>
+</head>
+<body class="bg-gray-100 p-4 md:p-8 min-h-screen flex flex-col items-center">
+
+    <div class="w-full max-w-6xl mx-auto bg-white p-6 md:p-8 rounded-lg shadow-xl">
+        <h1 class="text-2xl md:text-3xl font-bold mb-6 text-center text-gray-800">Enhanced CSV Chart Generator</h1>
+
+        <div id="messageArea" class="mb-4 p-3 rounded-md text-sm hidden bg-red-100 text-red-700 border border-red-200"></div>
+        <div id="statusMessageArea" class="mb-4 p-3 rounded-md text-sm hidden bg-blue-100 text-blue-700 border border-blue-200"></div>
+
+        <div class="mb-6 border-b pb-6 border-gray-200">
+            <h2 class="block mb-2 text-lg font-semibold text-gray-700">1. Upload Data</h2>
+            <button id="downloadSampleBtn" class="text-blue-600 hover:text-blue-800 text-sm font-medium mb-4 flex items-center">
+                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                Download Sample CSV
+            </button>
+            <div id="dropZone" class="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-lg p-4 mb-4 cursor-pointer hover:border-blue-400 transition-colors">
+                <svg class="w-10 h-10 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
+                <p class="text-sm text-gray-600 mb-1">Drag and drop CSV file here</p>
+                <p class="text-xs text-gray-500">or</p>
+                <input type="file" id="csvFile" accept=".csv" class="hidden"/>
+                <label for="csvFile" class="mt-2 bg-blue-50 text-blue-700 px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-100 cursor-pointer transition-colors"> Select File </label>
+            </div>
+             <p class="text-xs text-gray-500 mt-2">Assumes first row contains headers and first column contains labels or dates.</p>
+
+             <div id="dataTableContainer" class="mt-6 hidden"> <h3 class="block mb-2 text-md font-semibold text-gray-700">Data Preview</h3> <div class="border border-gray-200 rounded-lg shadow-sm overflow-hidden">
+                     <div class="overflow-x-auto relative">
+                        <table id="dataTable" class="min-w-full divide-y divide-gray-200 border-collapse">
+                            <thead class="bg-gray-50"></thead>
+                            <tbody class="bg-white divide-y divide-gray-200"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="configSection" class="mb-6 border-b pb-6 border-gray-200 hidden">
+             <h2 class="block mb-4 text-lg font-semibold text-gray-700">2. Configuration</h2>
+             <div class="mb-6 border-b border-gray-200 pb-4">
+                 <h3 class="text-md font-medium text-gray-800 mb-3">Display Options</h3>
+                 <div class="space-y-3">
+                    <label class="toggle-label text-sm text-gray-700" for="toggleTranspose" id="toggleTransposeLabel"> <span>Transpose Rows/Columns</span> <div class="toggle-switch"> <input type="checkbox" id="toggleTranspose"> <span class="toggle-slider"></span> </div> </label>
+                    <label class="toggle-label text-sm text-gray-700" for="toggleDates"> <span>Treat first column as dates</span> <div class="toggle-switch"> <input type="checkbox" id="toggleDates"> <span class="toggle-slider"></span> </div> </label>
+                    <div id="dateFormatContainer" class="mt-2 hidden ml-4 pl-2 border-l-2 border-gray-200"> <label for="dateFormatInput" class="block text-sm font-medium text-gray-700">Date Format (using Moment.js tokens):</label> <input type="text" id="dateFormatInput" value="YYYY-MM-DD" placeholder="e.g., YYYY-MM-DD, MM/DD/YYYY" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"> <p class="text-xs text-gray-500 mt-1">Examples: YYYY-MM-DD, MM/DD/YYYY, DD-MMM-YY, MMMM Do</p> </div>
+                </div>
+            </div>
+             <h3 class="text-md font-medium text-gray-800 mb-3">Chart Settings</h3>
+             <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-4">
+                 <div>
+                     <label for="chartTitleInput" class="block text-sm font-medium text-gray-700">Chart Title:</label>
+                     <input type="text" id="chartTitleInput" placeholder="Enter chart title (optional)" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                 </div>
+                 <div>
+                     <label for="chartTypeSelect" class="block mb-1 text-sm font-medium text-gray-700">Chart Type:</label>
+                     <select id="chartTypeSelect" disabled class="block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                         <option value="column" selected>Column Chart</option>
+                         <option value="columnStacked">Stacked Column</option>
+                         <option value="columnStacked100">100% Stacked Column</option>
+                         <option value="line">Line Chart</option>
+                         <option value="bar">Bar Chart (Horizontal)</option>
+                         <option value="barStacked">Stacked Bar (Horizontal)</option>
+                         <option value="barStacked100">100% Stacked Bar (Horizontal)</option>
+                         <option value="pie">Pie Chart</option>
+                         <option value="area">Area Chart</option>
+                     </select>
+                </div>
+                 <div id="barSettings" class="col-span-1 grid grid-cols-1 sm:grid-cols-2 gap-4"> <div>
+                         <label for="barPercentageInput" class="block mb-1 text-sm font-medium text-gray-700">Bar Width (%): <span id="barPercValue" class="text-xs">0.9</span></label>
+                         <input type="range" id="barPercentageInput" min="0.1" max="1" step="0.05" value="0.9" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                     </div>
+                     <div>
+                         <label for="categoryPercentageInput" class="block mb-1 text-sm font-medium text-gray-700">Category Spacing (%): <span id="catPercValue" class="text-xs">0.8</span></label>
+                         <input type="range" id="categoryPercentageInput" min="0.1" max="1" step="0.05" value="0.8" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                     </div>
+                 </div>
+                 <div>
+                    <label for="colorPaletteSelect" class="block mb-1 text-sm font-medium text-gray-700">Color Palette:</label>
+                    <select id="colorPaletteSelect" disabled class="block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                        <option value="0" selected>11 Colors (Default)</option>
+                        <option value="1">6 Colors</option>
+                        <option value="2">5 Colors</option>
+                        <option value="3">4 Colors</option>
+                        <option value="4">3 Colors</option>
+                        <option value="5">2 Colors</option>
+                        <option value="6">1 Color</option>
+                    </select>
+               </div>
+            </div>
+             <p class="text-xs text-gray-500 mt-2">Chart updates instantly on setting change.</p>
+
+             <div id="colorOverrideSection" class="mt-6 border-t border-gray-200 pt-4 hidden">
+                 <h3 class="block mb-4 text-md font-medium text-gray-800">Assign Palette Colors to Series</h3>
+                 <p class="text-xs text-gray-500 mb-3">Optionally assign specific colors from the selected palette to individual series.</p>
+                 <div id="colorAssignmentContainer" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-4 gap-y-2">
+                     </div>
+             </div>
+        </div>
+
+        <div class="mb-6 border-b pb-6 border-gray-200">
+             <h2 class="block mb-2 text-lg font-semibold text-gray-700">3. Chart Preview</h2>
+             <div id="chartContainer">
+                <canvas id="myChart"></canvas>
+                <p id="chartPlaceholder" class="absolute inset-0 flex items-center justify-center text-gray-500 text-center p-4">Upload a CSV file to generate the chart.</p>
+            </div>
+        </div>
+
+        <div class="text-center">
+             <h2 class="block mb-4 text-lg font-semibold text-gray-700">4. Download</h2>
+             <p class="text-sm text-gray-500 mb-3">Download the generated chart as a PNG image (transparent background) using default dimensions.</p>
+             <button id="downloadBtn" disabled class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded-md shadow transition duration-150 ease-in-out disabled:bg-gray-400"> Download Chart (PNG) </button>
+        </div>
+    </div>
+
+    <script>
+        // --- Set Chart.js Global Font ---
+        Chart.defaults.font.family = "'Inter', sans-serif";
+        Chart.defaults.font.size = 12;
+
+        // --- Define White Background Plugin ---
+        const whiteBackgroundPlugin = { id: 'whiteBackground', beforeDraw: (chart, args, options) => { const {ctx, width, height} = chart; ctx.save(); ctx.fillStyle = options.color || '#ffffff'; ctx.fillRect(0, 0, width, height); ctx.restore(); } };
+
+        // --- Register Plugins ---
+        if (window.ChartjsPluginStacked100) {
+            try { Chart.register(ChartjsPluginStacked100.default); console.log("ChartjsPluginStacked100 registered successfully."); }
+            catch (e) { console.error("Error registering ChartjsPluginStacked100:", e); }
+        } else { console.warn("ChartjsPluginStacked100 not found. Stacked 100% chart may not work."); }
+
+
+        // --- DOM Elements ---
+        const csvFileInput = document.getElementById('csvFile');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const chartContainer = document.getElementById('chartContainer');
+        const chartCanvas = document.getElementById('myChart');
+        const messageArea = document.getElementById('messageArea');
+        const statusMessageArea = document.getElementById('statusMessageArea');
+        const chartPlaceholder = document.getElementById('chartPlaceholder');
+        const configSection = document.getElementById('configSection');
+        const chartTypeSelect = document.getElementById('chartTypeSelect');
+        const barSettingsDiv = document.getElementById('barSettings');
+        const barPercentageInput = document.getElementById('barPercentageInput');
+        const categoryPercentageInput = document.getElementById('categoryPercentageInput');
+        const barPercValueSpan = document.getElementById('barPercValue');
+        const catPercValueSpan = document.getElementById('catPercValue');
+        const dataTableContainer = document.getElementById('dataTableContainer');
+        const dataTableHead = document.querySelector('#dataTable thead');
+        const dataTableBody = document.querySelector('#dataTable tbody');
+        const toggleTransposeCheckbox = document.getElementById('toggleTranspose');
+        const toggleDatesCheckbox = document.getElementById('toggleDates');
+        const dateFormatContainer = document.getElementById('dateFormatContainer');
+        const dateFormatInput = document.getElementById('dateFormatInput');
+        const chartTitleInput = document.getElementById('chartTitleInput');
+        // Removed applyChartSettingsBtn
+        const dropZone = document.getElementById('dropZone');
+        const downloadSampleBtn = document.getElementById('downloadSampleBtn');
+        const colorPaletteSelect = document.getElementById('colorPaletteSelect');
+        const colorOverrideSection = document.getElementById('colorOverrideSection');
+        const colorAssignmentContainer = document.getElementById('colorAssignmentContainer'); // Renamed
+
+
+        // --- Global Variables ---
+        let chartInstance = null;
+        let originalHeaders = [];
+        let originalFirstRowDataObject = null;
+        let parsedRawData = [];
+        let isTransposed = false;
+        let treatFirstColAsDates = false;
+        let dateFormat = 'YYYY-MM-DD';
+        let currentChartData = { labels: [], datasets: [] };
+        let currentChartOptions = {};
+
+        // --- Default values ---
+        const DOWNLOAD_WIDTH = 1280;
+        const DOWNLOAD_HEIGHT = 720;
+        const DEFAULT_BAR_PERC = 0.9;
+        const DEFAULT_CAT_PERC = 0.8;
+
+        // --- Color Palettes ---
+        function hexToRgb(hex) { let r = 0, g = 0, b = 0; if (hex.length == 4) { r = parseInt(hex[1] + hex[1], 16); g = parseInt(hex[2] + hex[2], 16); b = parseInt(hex[3] + hex[3], 16); } else if (hex.length == 7) { r = parseInt(hex[1] + hex[2], 16); g = parseInt(hex[3] + hex[4], 16); b = parseInt(hex[5] + hex[6], 16); } return { r, g, b }; }
+        function createPalette(hexColors) { const bg = hexColors.map(hex => { const {r, g, b} = hexToRgb(hex); return `rgb(${r}, ${g}, ${b})`; }); const border = bg; return { bg, border }; }
+        const PALETTES = [ createPalette(['#12ACEC', '#DF301C', '#FFB042', '#98D460', '#206599', '#EA8C69', '#C466E4', '#E8C99E', '#C86952', '#35B3B3', '#6D64E9']), createPalette(['#12ACEC', '#475569', '#64748B', '#94A3B8', '#CBD5E1', '#E2E8F0']), createPalette(['#12ACEC', '#64748B', '#94A3B8', '#CBD5E1', '#E2E8F0']), createPalette(['#12ACEC', '#94A3B8', '#CBD5E1', '#E2E8F0']), createPalette(['#12ACEC', '#CBD5E1', '#E2E8F0']), createPalette(['#12ACEC', '#CBD5E1']), createPalette(['#12ACEC']) ];
+        function rgbToHex(rgbString) { if (!rgbString || typeof rgbString !== 'string') return '#000000'; const match = rgbString.match(/^rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*[\d.]+)?\)$/); if (!match) { /* Check for hex already */ if (/^#[0-9A-F]{6}$/i.test(rgbString)) return rgbString; return '#000000'; } const r = parseInt(match[1], 10); const g = parseInt(match[2], 10); const b = parseInt(match[3], 10); return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1).toUpperCase(); }
+        // Helper to get contrasting text color (black/white) for a background color
+        function getContrastYIQ(rgbColor) {
+            try {
+                const match = rgbColor.match(/^rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*[\d.]+)?\)$/);
+                if (!match) return '#000'; // Default to black if parse fails
+                const r = parseInt(match[1], 10);
+                const g = parseInt(match[2], 10);
+                const b = parseInt(match[3], 10);
+                const yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
+                return (yiq >= 128) ? '#000' : '#FFF';
+            } catch (e) {
+                return '#000'; // Default to black on error
+            }
+        }
+
+
+        // --- Functions ---
+        function showError(message) { /* ... */ messageArea.textContent = message; messageArea.classList.remove('hidden'); statusMessageArea.classList.add('hidden'); }
+        function showStatus(message) { /* ... */ statusMessageArea.textContent = message; statusMessageArea.classList.remove('hidden'); messageArea.classList.add('hidden'); }
+        function hideMessages() { /* ... */ messageArea.classList.add('hidden'); statusMessageArea.classList.add('hidden'); }
+        function resetUI() {
+            configSection.classList.add('hidden');
+            dataTableContainer.classList.add('hidden');
+            colorOverrideSection.classList.add('hidden'); // Hide color overrides
+            colorAssignmentContainer.innerHTML = ''; // Clear color assignments
+            dataTableHead.innerHTML = ''; dataTableBody.innerHTML = '';
+            chartTypeSelect.value = 'column'; colorPaletteSelect.value = '0'; barPercentageInput.value = DEFAULT_BAR_PERC; categoryPercentageInput.value = DEFAULT_CAT_PERC; barPercValueSpan.textContent = DEFAULT_BAR_PERC; catPercValueSpan.textContent = DEFAULT_CAT_PERC; barSettingsDiv.classList.add('hidden');
+            chartTypeSelect.disabled = true; colorPaletteSelect.disabled = true; downloadBtn.disabled = true;
+            toggleDatesCheckbox.checked = false; dateFormatContainer.classList.add('hidden'); dateFormatInput.value = 'YYYY-MM-DD'; chartTitleInput.value = '';
+            if (chartInstance) { chartInstance.destroy(); chartInstance = null; }
+            chartPlaceholder.classList.remove('hidden'); const ctx = chartCanvas.getContext('2d'); if (ctx) { ctx.clearRect(0, 0, chartCanvas.width, chartCanvas.height); }
+            chartCanvas.style.width = null; chartCanvas.style.height = null;
+            originalHeaders = []; parsedRawData = []; originalFirstRowDataObject = null;
+            isTransposed = toggleTransposeCheckbox.checked; treatFirstColAsDates = toggleDatesCheckbox.checked;
+            currentChartData = { labels: [], datasets: [] }; currentChartOptions = {};
+            hideMessages();
+        }
+        function isNumeric(value) { /* ... */ if (typeof value === 'number' && !isNaN(value)) return true; if (typeof value !== 'string') return false; if (value.trim() === '' || value === null) return false; const cleanedVal = value.replace(/,/g, ''); return !isNaN(parseFloat(cleanedVal)) && isFinite(cleanedVal.trim() === '' ? NaN : cleanedVal); }
+        function parseNumericValue(value) { /* ... */ if (typeof value === 'number' && !isNaN(value)) return value; if (typeof value !== 'string') return null; const cleanedVal = value.replace(/,/g, ''); const num = parseFloat(cleanedVal); return isNaN(num) ? null : num; }
+        function analyzeData(data, currentHeaders, transposeEnabled, parseDates, dtFormat) { /* ... (same as before) ... */ const headersWereUsed = true; const useColAForLabels = !transposeEnabled; console.log("Analyzing data. headersWereUsed:", headersWereUsed, "useColAForLabels:", useColAForLabels, "transposeEnabled:", transposeEnabled, "parseDates:", parseDates); if (!currentHeaders || currentHeaders.length < 2 || !data || data.length === 0) { showError("CSV must contain at least two columns (Label/Date, Value)."); return null; } let labels = []; let datasets = []; const baseFontSize = Chart.defaults.font.size || 12; if (!transposeEnabled) { console.log("Analyzing in standard orientation"); const labelHeader = currentHeaders[0]; const labelHeaderDisplay = (typeof labelHeader === 'string' ? labelHeader.trim() : labelHeader) || "[Empty Header]"; showStatus(`Analyzing data... Using column '${labelHeaderDisplay}' as Label/Date column.`); if (parseDates) { labels = data.map(row => { const dateStr = String(row[labelHeader] ?? ''); const dateObj = moment(dateStr, dtFormat); return dateObj.isValid() ? dateObj.toDate() : dateStr; }); if (labels.some(l => typeof l === 'string')) { showError("Warning: Some values in the first column could not be parsed as dates using the format: " + dtFormat); } } else { labels = data.map(row => String(row[labelHeader] ?? '')); } console.log("Generated labels:", labels.slice(0, 5)); const potentialDataHeaders = currentHeaders.slice(1); potentialDataHeaders.forEach((header, index) => { const dataIndex = index + 1; let values = data.map(row => row[header]); let numericCount = 0; const sampleSize = Math.min(values.length, 10); if (sampleSize > 0) { for (let i = 0; i < sampleSize; i++) { if (isNumeric(values[i])) { numericCount++; } } } const isColNumeric = sampleSize === 0 || (numericCount / sampleSize) > 0.5; if (isColNumeric) { const numericColumnData = values.map(val => parseNumericValue(val)); const containsNumbers = numericColumnData.some(val => val !== null); if (containsNumbers) { datasets.push({ label: String(header ?? `Column ${dataIndex + 1}`), data: numericColumnData, borderWidth: 0 }); } else { console.log(`Column '${header}' skipped (no numeric values found).`); } } else { console.log(`Column '${header}' skipped (not numeric).`); } }); } else { showStatus("Analyzing transposed data... Rows become series."); let categoryHeaders = currentHeaders.slice(1); const seriesLabelHeaderKey = currentHeaders[0]; let seriesLabelsSource = data.map(row => String(row[seriesLabelHeaderKey] ?? '')); let dataMatrix = data.map(row => categoryHeaders.map(header => parseNumericValue(row[header]))); console.log("Transposed - Categories:", categoryHeaders.slice(0,5), "Series Labels Source:", seriesLabelsSource.slice(0,5)); labels = categoryHeaders; dataMatrix.forEach((rowData, rowIndex) => { if (rowData.some(val => val !== null)) { datasets.push({ label: seriesLabelsSource[rowIndex] || `Series ${rowIndex + 1}`, data: rowData, borderWidth: 0 }); } else { console.log(`Original Row ${rowIndex + 1} skipped.`); } }); console.log(`Created ${datasets.length} datasets in transposed mode.`); } if (datasets.length === 0) { showError("No valid numeric data series found."); return null; } showStatus(`Found ${datasets.length} numeric data series. Preparing chart data...`); currentChartData = { labels, datasets }; return currentChartData; }
+        // Removed applyChartSettings function
+        function getColumnLetter(index) { /* ... */ let letter = ''; let tempIndex = index; while (tempIndex >= 0) { letter = String.fromCharCode((tempIndex % 26) + 65) + letter; tempIndex = Math.floor(tempIndex / 26) - 1; } return letter; }
+        function transposeData(data, headers) { /* ... (same as before) ... */ console.log("Transposing data (assuming headers were used)..."); if (!data || data.length === 0 || !headers || headers.length < 2) return { transposedData: [], transposedHeaders: [] }; const categoryHeaders = headers.slice(1); const seriesLabelHeader = headers[0]; const newHeaders = [seriesLabelHeader || 'Label', ...data.map((row, index) => String(row[seriesLabelHeader] ?? `Row ${index + 1}`))]; const transposedMatrix = categoryHeaders.map(categoryHeader => { const newRow = [categoryHeader]; data.forEach(row => { newRow.push(row[categoryHeader]); }); return newRow; }); const transposedData = transposedMatrix.map(rowArray => { const rowObj = {}; newHeaders.forEach((header, index) => { rowObj[header] = rowArray[index] ?? null; }); return rowObj; }); console.log("Transposed Headers:", newHeaders); console.log("Transposed Data Sample:", transposedData.slice(0, 3)); return { transposedData, transposedHeaders: newHeaders }; }
+        function displayDataTable(displayHeaders, tableData, headerRowObj) { /* ... (same as before) ... */ const dataUsesHeaders = true; if (!dataTableHead || !dataTableBody || !displayHeaders) return; console.log("Displaying table. Headers:", displayHeaders); dataTableHead.innerHTML = ''; dataTableBody.innerHTML = ''; const theadRow = document.createElement('tr'); const thNum = document.createElement('th'); thNum.scope = 'col'; thNum.className = 'px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider'; thNum.textContent = '#'; theadRow.appendChild(thNum); const numDataCols = displayHeaders.length; for(let i=0; i<numDataCols; i++) { const th = document.createElement('th'); th.scope = 'col'; th.className = 'px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'; th.textContent = getColumnLetter(i); theadRow.appendChild(th); } dataTableHead.appendChild(theadRow); let rowNumberOffset = 1; if (headerRowObj) { console.log("Prepending header row content to table display as Row 1"); const tr = document.createElement('tr'); const thRowNum = document.createElement('th'); thRowNum.scope = 'row'; thRowNum.className = 'px-3 py-2 whitespace-nowrap text-sm text-gray-500 text-center'; thRowNum.textContent = '1'; tr.appendChild(thRowNum); originalHeaders.forEach((headerKey) => { const td = document.createElement('td'); td.className = 'px-3 py-2 whitespace-nowrap text-sm text-gray-700'; td.textContent = headerRowObj[headerKey] ?? ''; tr.appendChild(td); }); dataTableBody.appendChild(tr); rowNumberOffset = 2; } console.log("Displaying data rows count:", tableData.length); tableData.forEach((rowData, rowIndex) => { const tr = document.createElement('tr'); const thRowNum = document.createElement('th'); thRowNum.scope = 'row'; thRowNum.className = 'px-3 py-2 whitespace-nowrap text-sm text-gray-500 text-center'; thRowNum.textContent = rowIndex + rowNumberOffset; tr.appendChild(thRowNum); displayHeaders.forEach((header, colIndex) => { const td = document.createElement('td'); td.className = 'px-3 py-2 whitespace-nowrap text-sm text-gray-700'; const cellData = dataUsesHeaders ? rowData[header] : rowData[colIndex]; td.textContent = cellData ?? ''; tr.appendChild(td); }); dataTableBody.appendChild(tr); }); dataTableContainer.classList.remove('hidden'); }
+
+        /**
+         * Applies selected color palette to datasets. Includes opacity logic for reuse on palette 0.
+         */
+        function applyPalette(datasetsToUpdate) { /* ... (same as before) ... */ const paletteIndex = parseInt(colorPaletteSelect.value, 10) || 0; const selectedPalette = PALETTES[paletteIndex] || PALETTES[0]; const paletteLength = selectedPalette.bg.length; datasetsToUpdate.forEach((ds, i) => { const colorIndex = i % paletteLength; const isReused = i >= paletteLength; let bgColor = selectedPalette.bg[colorIndex]; let borderColor = selectedPalette.border[colorIndex]; if (isReused && paletteIndex === 0) { console.log(`Reusing color ${colorIndex} for dataset ${i} with reduced opacity (Palette 0 only).`); bgColor = bgColor.replace('rgb(', 'rgba(').replace(')', ', 0.5)'); borderColor = borderColor.replace('rgb(', 'rgba(').replace(')', ', 0.5)'); } else if (isReused) { console.log(`Reusing color ${colorIndex} for dataset ${i} with FULL opacity (Palette ${paletteIndex}).`); } ds.backgroundColor = bgColor; ds.borderColor = borderColor; const chartType = chartTypeSelect.value; ds.borderWidth = (chartType === 'pie' || chartType === 'scatter') ? 1 : 0; if (chartType === 'pie') { ds.borderColor = '#ffffff'; ds.borderWidth = 1; } }); console.log(`Applied palette ${paletteIndex} with conditional reuse logic.`); }
+
+        /**
+         * Populates the color assignment section with dropdowns.
+         */
+         function populateColorSelectors(datasets) {
+             colorAssignmentContainer.innerHTML = ''; // Clear previous selectors
+             if (!datasets || datasets.length === 0) {
+                 colorOverrideSection.classList.add('hidden');
+                 return;
+             }
+
+             const paletteIndex = parseInt(colorPaletteSelect.value, 10) || 0;
+             const selectedPalette = PALETTES[paletteIndex] || PALETTES[0];
+             const numColorsInPalette = selectedPalette.bg.length;
+
+             console.log(`Populating color selectors for ${datasets.length} datasets using palette ${paletteIndex} (size ${numColorsInPalette}).`);
+
+             datasets.forEach((ds, datasetIndex) => {
+                 const currentBgColor = ds.backgroundColor || selectedPalette.bg[datasetIndex % numColorsInPalette]; // Get current color
+
+                 const assignmentDiv = document.createElement('div');
+                 assignmentDiv.className = 'flex items-center justify-between mb-2';
+
+                 const label = document.createElement('label');
+                 label.textContent = ds.label || `Dataset ${datasetIndex + 1}`;
+                 label.className = 'text-sm text-gray-700 mr-2 truncate flex-1'; // Allow label to take space
+                 label.htmlFor = `color-select-${datasetIndex}`;
+
+                 const colorSelect = document.createElement('select');
+                 colorSelect.id = `color-select-${datasetIndex}`;
+                 colorSelect.dataset.datasetIndex = datasetIndex; // Store index
+                 colorSelect.className = 'color-assign-select'; // Apply specific class if needed
+
+                 // Find which palette color is currently assigned (approximately)
+                 // This is tricky if opacity was applied or color was custom picked before.
+                 // For simplicity, default selection to the standard modulo assignment.
+                 let currentPaletteIndex = datasetIndex % numColorsInPalette;
+
+                 // Populate dropdown with colors from the selected palette
+                 selectedPalette.bg.forEach((bgColor, colorIdx) => {
+                     const option = document.createElement('option');
+                     option.value = colorIdx; // Store the index of the color in the palette
+                     option.style.backgroundColor = bgColor;
+                     option.style.color = getContrastYIQ(bgColor); // Set text color for contrast
+                     option.innerHTML = `<span class="color-assign-option-color" style="background-color:${bgColor};"></span> Color ${colorIdx + 1}`;
+                     if (colorIdx === currentPaletteIndex) {
+                         option.selected = true; // Select the default assigned color
+                     }
+                     colorSelect.appendChild(option);
+                 });
+
+                 colorSelect.addEventListener('change', handleColorSelectChange);
+
+                 assignmentDiv.appendChild(label);
+                 assignmentDiv.appendChild(colorSelect);
+                 colorAssignmentContainer.appendChild(assignmentDiv);
+             });
+
+             colorOverrideSection.classList.remove('hidden');
+         }
+
+         /**
+          * Handles changes from the individual color assignment dropdowns.
+          */
+         function handleColorSelectChange(event) {
+             if (!chartInstance) return;
+
+             const selectedColorIndex = parseInt(event.target.value, 10);
+             const datasetIndex = parseInt(event.target.dataset.datasetIndex, 10);
+             const paletteIndex = parseInt(colorPaletteSelect.value, 10) || 0;
+             const selectedPalette = PALETTES[paletteIndex] || PALETTES[0];
+
+             if (isNaN(datasetIndex) || datasetIndex >= chartInstance.data.datasets.length ||
+                 isNaN(selectedColorIndex) || selectedColorIndex >= selectedPalette.bg.length) {
+                 return;
+             }
+
+             // Get the chosen color from the selected palette
+             const newBgColor = selectedPalette.bg[selectedColorIndex];
+             const newBorderColor = selectedPalette.border[selectedColorIndex];
+
+             // Update the specific dataset
+             const dataset = chartInstance.data.datasets[datasetIndex];
+             dataset.backgroundColor = newBgColor;
+             dataset.borderColor = newBorderColor;
+
+             // Handle pie chart specific styling if needed
+             if (chartInstance.config.type === 'pie') {
+                 // Pie backgroundColor is an array, update the specific index?
+                 // This logic assumes the pie chart ONLY shows the first dataset.
+                 // If we want to change slice N color, we need to update dataset[0].backgroundColor[N]
+                 // This requires mapping the overall datasetIndex to the label index.
+                 // For now, let's assume changing the first dataset's color applies to the whole pie.
+                 if(datasetIndex === 0) {
+                     dataset.backgroundColor = selectedPalette.bg.slice(0, currentChartData.labels.length); // Reapply whole palette to pie
+                 }
+                 dataset.borderColor = '#ffffff'; // Keep white border
+                 dataset.borderWidth = 1;
+             } else {
+                 // Reset border width based on type
+                 const chartType = chartTypeSelect.value;
+                 dataset.borderWidth = (chartType === 'scatter') ? 1 : 0;
+             }
+
+             chartInstance.update(); // Update the chart visually
+             showStatus(`Updated color for dataset: ${dataset.label || `Dataset ${datasetIndex + 1}`}`);
+         }
+
+
+        /**
+         * Generates the chart based on selected type and data. Responsive.
+         */
+        function generateChart(labels, datasets) {
+            labels = labels || currentChartData.labels; datasets = datasets || currentChartData.datasets; if (!labels || !datasets || datasets.length === 0) { showError("Cannot generate chart: missing data."); return; } currentChartData = { labels, datasets }; if (!chartCanvas) { showError("Canvas element not found."); return; } const ctx = chartCanvas.getContext('2d'); if (!ctx) { showError("Failed to get canvas context."); return; } if (chartInstance) { chartInstance.destroy(); chartInstance = null; } chartPlaceholder.classList.add('hidden');
+
+            const selectedTypeOption = chartTypeSelect.value;
+            let chartType = 'bar'; let indexAxis = 'x';
+            const baseFontSize = Chart.defaults.font.size || 12;
+            let xAxisTitleText = ''; let yAxisTitleText = 'Value';
+            const transposeEnabled = toggleTransposeCheckbox.checked;
+            const parseDates = treatFirstColAsDates;
+
+            let chartLabels = labels;
+            let datasetsForChart = JSON.parse(JSON.stringify(datasets)); // Use clone
+            let chartDataConfig;
+
+            // Apply selected color palette and set borderWidth
+            applyPalette(datasetsForChart); // Apply colors and set borderWidth
+
+            // Modify data for time scale if dates are used and not transposed
+            if (parseDates && !transposeEnabled && ['line', 'column', 'bar', 'area', 'scatter', 'columnStacked', 'columnStacked100', 'barStacked', 'barStacked100'].includes(selectedTypeOption)) { /* ... Time scale data formatting ... */ console.log("Formatting data for time scale"); if (selectedTypeOption === 'scatter') { datasetsForChart.forEach(ds => { ds.data = ds.data.map((yValue, index) => ({ x: chartLabels[index], y: yValue })).filter(p => p.x && p.y !== null); }); chartDataConfig = { datasets: datasetsForChart }; } else { chartDataConfig = { labels: chartLabels, datasets: datasetsForChart }; } }
+            else { chartDataConfig = { labels: chartLabels, datasets: datasetsForChart }; }
+
+            // Determine Axis Titles
+            if (transposeEnabled) { xAxisTitleText = 'Category'; yAxisTitleText = originalHeaders[0] || 'Row Value'; }
+            else { xAxisTitleText = (parseDates ? 'Date' : (originalHeaders[0] || 'Label')); }
+            if (typeof xAxisTitleText === 'string' && xAxisTitleText.trim() === '') xAxisTitleText = '';
+
+            // Configure Scales
+            let scalesConfig = { x: { stacked: false, title: { display: !!xAxisTitleText, text: xAxisTitleText, font: { size: baseFontSize + 2 } }, ticks: { font: { size: baseFontSize } } }, y: { stacked: false, beginAtZero: true, title: { display: true, text: yAxisTitleText, font: { size: baseFontSize + 2 } }, ticks: { font: { size: baseFontSize } } } };
+            if (parseDates && !transposeEnabled && !selectedTypeOption.includes('bar')) { scalesConfig.x.type = 'time'; scalesConfig.x.time = { parser: dateFormat, tooltipFormat: 'll', unit: 'day' }; }
+            else if (parseDates && !transposeEnabled && selectedTypeOption.includes('bar')) { scalesConfig.y.type = 'time'; scalesConfig.y.time = { parser: dateFormat, tooltipFormat: 'll', unit: 'day'}; scalesConfig.x.beginAtZero = true; }
+
+            // Configure based on chart type
+            let chartSpecificOptions = {}; const barPercentage = parseFloat(barPercentageInput.value); const categoryPercentage = parseFloat(categoryPercentageInput.value);
+            let pluginConfig = { legend: { display: true, position: 'top', labels: { font: { size: baseFontSize } } }, tooltip: { enabled: true }, whiteBackground: { color: '#ffffff' }, title: { display: chartTitleInput.value !== '', text: chartTitleInput.value, font: { size: baseFontSize + 4 } }, stacked100: { enable: false } };
+
+            if (selectedTypeOption === 'line') { chartType = 'line'; datasetsForChart.forEach(ds => { ds.tension = 0.1; ds.fill = false; ds.borderWidth = 2; }); }
+            else if (selectedTypeOption === 'area') { chartType = 'line'; datasetsForChart.forEach(ds => { ds.tension = 0.4; ds.fill = true; ds.borderWidth = 1; }); }
+            else if (selectedTypeOption === 'bar') { chartType = 'bar'; indexAxis = 'y'; scalesConfig = { x: { stacked: false, beginAtZero: true, title: { display: true, text: yAxisTitleText, font: { size: baseFontSize + 2 } }, ticks: { font: { size: baseFontSize } } }, y: { stacked: false, title: { display: !!xAxisTitleText, text: xAxisTitleText, font: { size: baseFontSize + 2 } }, ticks: { font: { size: baseFontSize } } } }; if (parseDates && !transposeEnabled) { scalesConfig.y.type = 'time'; scalesConfig.y.time = { parser: dateFormat, tooltipFormat: 'll', unit: 'day'}; } datasetsForChart.forEach(ds => { ds.barPercentage = barPercentage; ds.categoryPercentage = categoryPercentage; }); }
+            else if (selectedTypeOption === 'pie') { chartType = 'pie'; indexAxis = undefined; scalesConfig = {}; if (datasetsForChart.length > 0) { const firstDataset = datasetsForChart[0]; /* Colors/Borders already applied by applyPalette */ chartDataConfig = { labels: labels, datasets: [firstDataset] }; showStatus("Displaying Pie Chart for the first data series found."); } else { showError("No data series available for Pie Chart."); return; } }
+            else if (selectedTypeOption === 'scatter') { chartType = 'scatter'; indexAxis = 'x'; datasetsForChart.forEach(ds => { ds.showLine = false; ds.pointRadius = 5; ds.borderWidth = 1; }); }
+            else if (selectedTypeOption === 'columnStacked') { chartType = 'bar'; indexAxis = 'x'; scalesConfig.x.stacked = false; scalesConfig.y.stacked = true; datasetsForChart.forEach(ds => { ds.barPercentage = barPercentage; ds.categoryPercentage = categoryPercentage; }); }
+             else if (selectedTypeOption === 'barStacked') { chartType = 'bar'; indexAxis = 'y'; scalesConfig.x.stacked = true; scalesConfig.y.stacked = false; scalesConfig = { x: { stacked: true, beginAtZero: true, title: { display: true, text: yAxisTitleText, font: { size: baseFontSize + 2 } }, ticks: { font: { size: baseFontSize } } }, y: { stacked: false, title: { display: !!xAxisTitleText, text: xAxisTitleText, font: { size: baseFontSize + 2 } }, ticks: { font: { size: baseFontSize } } } }; if (parseDates && !transposeEnabled) { scalesConfig.y.type = 'time'; scalesConfig.y.time = { parser: dateFormat, tooltipFormat: 'll', unit: 'day'}; } datasetsForChart.forEach(ds => { ds.barPercentage = barPercentage; ds.categoryPercentage = categoryPercentage; }); }
+            else if (selectedTypeOption === 'columnStacked100') { chartType = 'bar'; indexAxis = 'x'; scalesConfig.x.stacked = true; scalesConfig.y.stacked = true; pluginConfig.stacked100 = { enable: true, precision: 1 }; scalesConfig.y.ticks.callback = function(value) { return value.toFixed(0) + "%" }; datasetsForChart.forEach(ds => { ds.barPercentage = barPercentage; ds.categoryPercentage = categoryPercentage; }); }
+             else if (selectedTypeOption === 'barStacked100') { chartType = 'bar'; indexAxis = 'y'; scalesConfig.x.stacked = true; scalesConfig.y.stacked = true; pluginConfig.stacked100 = { enable: true, precision: 1 }; scalesConfig = { x: { stacked: true, beginAtZero: true, title: { display: true, text: yAxisTitleText, font: { size: baseFontSize + 2 } }, ticks: { font: { size: baseFontSize }, callback: function(value) { return value.toFixed(0) + "%" } } }, y: { stacked: true, title: { display: !!xAxisTitleText, text: xAxisTitleText, font: { size: baseFontSize + 2 } }, ticks: { font: { size: baseFontSize } } } }; if (parseDates && !transposeEnabled) { scalesConfig.y.type = 'time'; scalesConfig.y.time = { parser: dateFormat, tooltipFormat: 'll', unit: 'day'}; } datasetsForChart.forEach(ds => { ds.barPercentage = barPercentage; ds.categoryPercentage = categoryPercentage; }); }
+            else { /* column */ chartType = 'bar'; indexAxis = 'x'; datasetsForChart.forEach(ds => { ds.barPercentage = barPercentage; ds.categoryPercentage = categoryPercentage; }); }
+
+            // Final Chart Options
+            currentChartOptions = { responsive: true, maintainAspectRatio: false, indexAxis: indexAxis, scales: scalesConfig, plugins: pluginConfig, animation: false, ...chartSpecificOptions };
+            if (chartType === 'pie') { delete currentChartOptions.scales; delete currentChartOptions.indexAxis; }
+
+            // Create Chart
+            try {
+                 chartInstance = new Chart(ctx, { type: chartType, data: chartDataConfig, options: currentChartOptions, plugins: [whiteBackgroundPlugin] });
+                 downloadBtn.disabled = false;
+                 // Populate/Update color selectors AFTER chart instance exists
+                 populateColorSelectors(chartInstance.data.datasets);
+                 let statusMsg = `Chart generated/updated successfully (Type: ${chartTypeSelect.options[chartTypeSelect.selectedIndex].text}).`; if (chartType === 'pie' && datasets.length > 1) { statusMsg += ` Showing data for '${datasets[0].label}'.`; } showStatus(statusMsg);
+             } catch (error) { console.error("Chart.js error:", error); showError(`Failed to create chart: ${error.message}`); chartPlaceholder.classList.remove('hidden'); downloadBtn.disabled = true; chartInstance = null; }
+        }
+
+        function toggleBarSettingsVisibility() { /* ... */ const selectedType = chartTypeSelect.value; if (selectedType.includes('column') || selectedType.includes('bar')) { barSettingsDiv.classList.remove('hidden'); } else { barSettingsDiv.classList.add('hidden'); } }
+
+        /**
+         * Reprocesses stored data based on current toggle states and regenerates chart and table.
+         */
+        function reprocessAndRegenerate() {
+            if (!parsedRawData || parsedRawData.length === 0) { showError("No data loaded to reprocess."); return; }
+            showStatus("Re-analyzing data and updating display...");
+
+            isTransposed = toggleTransposeCheckbox.checked;
+            treatFirstColAsDates = toggleDatesCheckbox.checked;
+            dateFormat = dateFormatInput.value || 'YYYY-MM-DD';
+
+            // --- Update Table Display ---
+            let dataForTable = parsedRawData;
+            let headersForTable = originalHeaders;
+            let headerRowObjForTable = null;
+
+            console.log(`Reprocessing - Transpose: ${isTransposed}`);
+            if (isTransposed) {
+                 console.log("Calling transposeData for table display...");
+                 const { transposedData, transposedHeaders } = transposeData(parsedRawData, originalHeaders, true);
+                 dataForTable = transposedData;
+                 headersForTable = transposedHeaders;
+                 console.log("Table will display transposed data.");
+            } else {
+                 if(originalFirstRowDataObject) { headerRowObjForTable = originalFirstRowDataObject; }
+                 console.log("Table will display original data.");
+            }
+            displayDataTable(headersForTable, dataForTable, headerRowObjForTable); // Pass simplified args
+
+
+            // --- Analyze Data for Chart ---
+            console.log("Reprocessing - Analyzing for chart...");
+            const chartData = analyzeData(parsedRawData, originalHeaders, isTransposed, treatFirstColAsDates, dateFormat); // Pass simplified args
+
+            // --- Generate Chart ---
+            if (chartData) {
+                console.log("Reprocessing - Generating chart...");
+                generateChart(chartData.labels, chartData.datasets);
+            } else {
+                 console.log("Reprocessing - Analysis failed, clearing chart.");
+                 if (chartInstance) { chartInstance.destroy(); chartInstance = null; }
+                 chartPlaceholder.classList.remove('hidden');
+                 downloadBtn.disabled = true;
+                 colorOverrideSection.classList.add('hidden');
+            }
+        }
+
+
+        // --- Event Listeners ---
+        csvFileInput.addEventListener('change', handleFileSelect);
+        dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('drag-active'); });
+        dropZone.addEventListener('dragleave', () => { dropZone.classList.remove('drag-active'); });
+        dropZone.addEventListener('drop', handleFileDrop);
+
+        function handleFileSelect(event) { const file = event.target.files[0]; if (file) { processFile(file); } }
+        function handleFileDrop(event) { event.preventDefault(); dropZone.classList.remove('drag-active'); if (event.dataTransfer.files.length) { csvFileInput.files = event.dataTransfer.files; const changeEvent = new Event('change'); csvFileInput.dispatchEvent(changeEvent); } }
+
+        function processFile(file) {
+            resetUI(); if (!file) { return; } if (!file.name.toLowerCase().endsWith('.csv')) { showError("Invalid file type."); csvFileInput.value = ''; return; }
+            usingHeaders = true; // Hardcoded
+            isTransposed = toggleTransposeCheckbox.checked;
+            treatFirstColAsDates = toggleDatesCheckbox.checked;
+            dateFormat = dateFormatInput.value || 'YYYY-MM-DD';
+
+            console.log("Parsing with headers: true"); showStatus("Parsing CSV file...");
+            Papa.parse(file, {
+                header: true, skipEmptyLines: true, dynamicTyping: false,
+                complete: (results) => {
+                    let dataToProcess; let headersToUse; let headerRowForTableDisplay = null;
+                    if (results.errors.length > 0) { const errorDetails = results.errors.map(err => `Row ${err.row}: ${err.message}`).join('; '); console.error("Parsing errors:", results.errors); showError(`Error parsing CSV: ${errorDetails.substring(0, 200)}${errorDetails.length > 200 ? '...' : ''}.`); csvFileInput.value = ''; return; }
+                    if (!results.data || results.data.length === 0) { showError("CSV file contains no data rows."); csvFileInput.value = ''; return; }
+
+                    originalHeaders = results.meta.fields || []; originalHeaders = originalHeaders.filter(h => h !== undefined && h !== null); if (originalHeaders.length === 0) { showError("Could not detect headers."); return; }
+                    if (originalHeaders.length < 2) { showError("CSV needs at least 2 columns (labels/dates, values)."); return;}
+
+                    dataToProcess = results.data; headersToUse = originalHeaders;
+                    originalFirstRowDataObject = {}; originalHeaders.forEach(h => originalFirstRowDataObject[h] = h);
+                    headerRowForTableDisplay = originalFirstRowDataObject;
+
+                    parsedRawData = dataToProcess;
+
+                    // Initial Display uses current transpose state
+                    let initialDataForTable = parsedRawData;
+                    let initialHeadersForTable = headersToUse;
+                    let initialHeaderRowObj = headerRowForTableDisplay;
+
+                    if(isTransposed) {
+                         const { transposedData, transposedHeaders } = transposeData(parsedRawData, originalHeaders, true);
+                         initialDataForTable = transposedData;
+                         initialHeadersForTable = transposedHeaders;
+                         initialHeaderRowObj = null;
+                    }
+                    displayDataTable(initialHeadersForTable, initialDataForTable, initialHeaderRowObj); // Simplified call
+
+                    configSection.classList.remove('hidden'); chartTypeSelect.disabled = false; colorPaletteSelect.disabled = false; toggleBarSettingsVisibility();
+                    // Analyze actual data rows based on initial toggle states
+                    const chartData = analyzeData(parsedRawData, originalHeaders, isTransposed, treatFirstColAsDates, dateFormat);
+                    if (chartData) { generateChart(chartData.labels, chartData.datasets); }
+                    else { downloadBtn.disabled = true; configSection.classList.remove('hidden'); chartTypeSelect.disabled = false; colorPaletteSelect.disabled = false; toggleBarSettingsVisibility(); }
+                },
+                error: (error) => { console.error("Papa Parse error:", error); showError(`Failed to read file: ${error.message}`); csvFileInput.value = ''; resetUI(); }
+            });
+        }
+
+        // Update chart AND table when transpose toggle changes
+        toggleTransposeCheckbox.addEventListener('change', reprocessAndRegenerate);
+        // Update chart AND potentially table axis type when date toggle changes
+        toggleDatesCheckbox.addEventListener('change', function() { treatFirstColAsDates = this.checked; dateFormatContainer.classList.toggle('hidden', !this.checked); reprocessAndRegenerate(); });
+        dateFormatInput.addEventListener('change', function() { dateFormat = this.value; if (treatFirstColAsDates) { reprocessAndRegenerate(); } });
+        // Update title instantly
+        chartTitleInput.addEventListener('input', () => { if (chartInstance && chartInstance.options.plugins.title) { chartInstance.options.plugins.title.text = chartTitleInput.value; chartInstance.options.plugins.title.display = chartTitleInput.value !== ''; chartInstance.update(); } });
+        // Update chart instantly for type changes or bar settings changes or color palette
+        chartTypeSelect.addEventListener('change', () => { toggleBarSettingsVisibility(); if (currentChartData.labels && currentChartData.labels.length > 0) { generateChart(currentChartData.labels, currentChartData.datasets); } });
+        colorPaletteSelect.addEventListener('change', () => { if (chartInstance) { applyPalette(chartInstance.data.datasets); populateColorSelectors(chartInstance.data.datasets); chartInstance.update(); } }); // Update existing chart colors AND selectors
+        barPercentageInput.addEventListener('input', (e) => { barPercValueSpan.textContent = e.target.value; if (chartInstance) { generateChart(currentChartData.labels, currentChartData.datasets); } });
+        categoryPercentageInput.addEventListener('input', (e) => { catPercValueSpan.textContent = e.target.value; if (chartInstance) { generateChart(currentChartData.labels, currentChartData.datasets); } });
+        // Removed applyChartSettingsBtn listener
+
+        downloadBtn.addEventListener('click', () => { /* ... (Download logic remains the same) ... */ if (!chartInstance || !chartCanvas || downloadBtn.disabled) { showError("Cannot download."); return; } hideMessages(); showStatus("Preparing transparent download..."); try { const width = DOWNLOAD_WIDTH; const height = DOWNLOAD_HEIGHT; const tempCanvas = document.createElement('canvas'); tempCanvas.width = width; tempCanvas.height = height; const tempCtx = tempCanvas.getContext('2d'); if (!tempCtx) { throw new Error("Failed to get temporary context."); } let downloadOptions = { responsive: false, maintainAspectRatio: false, indexAxis: chartInstance.config.options.indexAxis, scales: chartInstance.config.options.scales, plugins: { title: chartInstance.config.options.plugins.title, legend: chartInstance.config.options.plugins.legend, tooltip: chartInstance.config.options.plugins.tooltip }, animation: false }; const downloadConfig = { type: chartInstance.config.type, data: { labels: currentChartData.labels, datasets: currentChartData.datasets }, options: downloadOptions }; const tempChart = new Chart(tempCtx, downloadConfig); setTimeout(() => { try { const imageURL = tempCanvas.toDataURL('image/png'); const link = document.createElement('a'); link.href = imageURL; link.download = `chart_${width}x${height}_transparent.png`; document.body.appendChild(link); link.click(); document.body.removeChild(link); showStatus("Chart download started (PNG - Transparent)."); } catch (renderError) { console.error("Error generating transparent PNG:", renderError); showError(`Failed to generate transparent PNG: ${renderError.message}.`); } finally { if (tempChart) { tempChart.destroy(); } } }, 150); } catch (error) { console.error("Error during PNG download setup:", error); showError(`Failed to generate PNG image: ${error.message}.`); statusMessageArea.classList.add('hidden'); } });
+        downloadSampleBtn.addEventListener('click', () => { /* ... (same as before) ... */ const sampleData = `Date,Product A,Product B,Product C\n2023-01-01,120,150,80\n2023-01-02,135,145,85\n2023-01-03,125,160,90\n2023-01-04,140,155,95\n2023-01-05,130,165,100`; const blob = new Blob([sampleData], { type: 'text/csv' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'chart_sample_data.csv'; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url); });
+
+        // Initialize UI state
+        resetUI();
+
+    </script>
+</body>
+</html>
