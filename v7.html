@@ -243,9 +243,6 @@
     <div class="container-wrapper">
         <h1 class="text-2xl md:text-3xl font-bold py-4 px-6 bg-white border-b text-center text-gray-800">Enhanced CSV Chart Generator</h1>
 
-        <div id="messageArea" class="mx-6 mb-4 p-3 rounded-md text-sm hidden bg-red-100 text-red-700 border border-red-200"></div>
-        <div id="statusMessageArea" class="mx-6 mb-4 p-3 rounded-md text-sm hidden bg-blue-100 text-blue-700 border border-blue-200"></div>
-
         <div class="split-layout">
             <!-- Left Panel - Controls -->
             <div class="left-panel">
@@ -773,9 +770,19 @@
 
 
         // --- Functions ---
-        function showError(message) { /* ... */ messageArea.textContent = message; messageArea.classList.remove('hidden'); statusMessageArea.classList.add('hidden'); }
-        function showStatus(message) { /* ... */ statusMessageArea.textContent = message; statusMessageArea.classList.remove('hidden'); messageArea.classList.add('hidden'); }
-        function hideMessages() { /* ... */ messageArea.classList.add('hidden'); statusMessageArea.classList.add('hidden'); }
+        function showError(message) { 
+            console.error(message); 
+            // The message elements have been removed from the UI
+        }
+        
+        function showStatus(message) { 
+            console.log(message); 
+            // The message elements have been removed from the UI
+        }
+        
+        function hideMessages() { 
+            // The message elements have been removed from the UI
+        }
         function resetUI() {
             // Reset chart type
             document.getElementById('chartTypeSelect').value = 'bar';
