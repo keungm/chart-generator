@@ -2860,6 +2860,7 @@
             legendMargin.addEventListener('input', function() {
                 legendMarginValue.textContent = this.value;
                 if (chartInstance) {
+
                     generateChart(currentChartData.labels, currentChartData.datasets);
                 }
             });
@@ -3463,8 +3464,18 @@
             });
         }
 
+        // Add palette change listener to regenerate chart when user selects a different palette
+        if (colorPaletteSelect) {
+            colorPaletteSelect.addEventListener('change', function() {
+                if (currentChartData.labels && currentChartData.labels.length > 0) {
+                    generateChart(currentChartData.labels, currentChartData.datasets);
+                }
+            });
+        }
+
     </script>
 </body>
 </html>
+
 
 
