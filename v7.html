@@ -3438,6 +3438,16 @@
             });
         }
 
+        // Chart type change listener
+        if (chartTypeSelect) {
+            chartTypeSelect.addEventListener('change', function() {
+                toggleChartSettingsVisibility();
+                if (currentChartData.labels && currentChartData.labels.length > 0) {
+                    generateChart(currentChartData.labels, currentChartData.datasets);
+                }
+            });
+        }
+
     </script>
 </body>
 </html>
