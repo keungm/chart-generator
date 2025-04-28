@@ -460,7 +460,7 @@
                     <div class="mb-2">
                         <label for="chartTextColor" class="block mb-1 text-sm font-medium text-gray-700">Text:</label>
                         <div class="flex items-center">
-                            <input type="color" id="chartTextColor" value="#333333" class="h-8 w-10 p-0 border border-gray-300 rounded cursor-pointer">
+                            <input type="color" id="chartTextColor" value="#404040" class="h-8 w-10 p-0 border border-gray-300 rounded cursor-pointer">
                             <button id="resetTextColorBtn" class="ml-2 px-2 py-1 text-xs border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none">
                                 Reset
                             </button>
@@ -784,7 +784,7 @@
             
             // Reset color pickers to defaults
             if (chartBackgroundToggle) chartBackgroundToggle.checked = false;
-            if (chartTextColorPicker) chartTextColorPicker.value = '#333333';
+            if (chartTextColorPicker) chartTextColorPicker.value = '#404040';
             
             // Clear color assignments & hide color override section
             document.getElementById('colorAssignmentContainer').innerHTML = '';
@@ -1744,11 +1744,11 @@
                         display: !!xAxisTitleText, 
                         text: xAxisTitleText, 
                         font: { size: baseFontSize + 2 },
-                        color: chartTextColorPicker ? chartTextColorPicker.value : '#333333'
+                        color: chartTextColorPicker ? chartTextColorPicker.value : '#404040'
                     },
                     ticks: {
                         font: { size: baseFontSize },
-                        color: chartTextColorPicker ? chartTextColorPicker.value : '#666666'
+                        color: chartTextColorPicker ? chartTextColorPicker.value : '#404040'
                     },
                     grid: {
                         color: 'rgba(0, 0, 0, 0.1)'
@@ -1761,11 +1761,11 @@
                         display: !!yAxisTitleText, 
                         text: yAxisTitleText, 
                         font: { size: baseFontSize + 2 },
-                        color: chartTextColorPicker ? chartTextColorPicker.value : '#333333'
+                        color: chartTextColorPicker ? chartTextColorPicker.value : '#404040'
                     },
                     ticks: {
                         font: { size: baseFontSize },
-                        color: chartTextColorPicker ? chartTextColorPicker.value : '#666666'
+                        color: chartTextColorPicker ? chartTextColorPicker.value : '#404040'
                     },
                     grid: {
                         color: 'rgba(0, 0, 0, 0.1)'
@@ -1790,7 +1790,7 @@
                         boxWidth: legendBoxWidth ? parseInt(legendBoxWidth.value, 10) : 15,
                         boxHeight: legendBoxHeight ? parseInt(legendBoxHeight.value, 10) : 15,
                         pointStyle: 'rect',
-                        color: chartTextColorPicker ? chartTextColorPicker.value : '#333333',
+                        color: chartTextColorPicker ? chartTextColorPicker.value : '#404040',
                         padding: legendItemSpacing ? parseInt(legendItemSpacing.value, 10) : 10
                     },
                     title: {
@@ -1804,7 +1804,7 @@
                     display: chartTitleInput.value !== '', 
                     text: chartTitleInput.value, 
                     font: { size: baseFontSize + 4 },
-                    color: chartTextColorPicker ? chartTextColorPicker.value : '#333333'
+                    color: chartTextColorPicker ? chartTextColorPicker.value : '#404040'
                 },
                 stacked100: { enable: false },
                 datalabels: {
@@ -1970,11 +1970,11 @@
                             display: !!yAxisTitleText, 
                             text: yAxisTitleText, 
                             font: { size: baseFontSize + 2 },
-                            color: chartTextColorPicker ? chartTextColorPicker.value : '#333333'
+                            color: chartTextColorPicker ? chartTextColorPicker.value : '#404040'
                         }, 
                         ticks: { 
                             font: { size: baseFontSize },
-                            color: chartTextColorPicker ? chartTextColorPicker.value : '#666666'
+                            color: chartTextColorPicker ? chartTextColorPicker.value : '#404040'
                         },
                         grid: {
                             color: 'rgba(0, 0, 0, 0.1)'
@@ -1986,11 +1986,11 @@
                             display: !!xAxisTitleText, 
                             text: xAxisTitleText, 
                             font: { size: baseFontSize + 2 },
-                            color: chartTextColorPicker ? chartTextColorPicker.value : '#333333'
+                            color: chartTextColorPicker ? chartTextColorPicker.value : '#404040'
                         }, 
                         ticks: { 
                             font: { size: baseFontSize },
-                            color: chartTextColorPicker ? chartTextColorPicker.value : '#666666'
+                            color: chartTextColorPicker ? chartTextColorPicker.value : '#404040'
                         },
                         grid: {
                             color: 'rgba(0, 0, 0, 0.1)'
@@ -2130,11 +2130,11 @@
                             display: !!yAxisTitleText, 
                             text: yAxisTitleText, 
                             font: { size: baseFontSize + 2 },
-                            color: chartTextColorPicker ? chartTextColorPicker.value : '#333333'
+                            color: chartTextColorPicker ? chartTextColorPicker.value : '#404040'
                         }, 
                         ticks: { 
                             font: { size: baseFontSize },
-                            color: chartTextColorPicker ? chartTextColorPicker.value : '#666666'
+                            color: chartTextColorPicker ? chartTextColorPicker.value : '#404040'
                         },
                         grid: {
                             color: 'rgba(0, 0, 0, 0.1)'
@@ -2146,11 +2146,11 @@
                             display: !!xAxisTitleText, 
                             text: xAxisTitleText, 
                             font: { size: baseFontSize + 2 },
-                            color: chartTextColorPicker ? chartTextColorPicker.value : '#333333'
+                            color: chartTextColorPicker ? chartTextColorPicker.value : '#404040'
                         }, 
                         ticks: { 
                             font: { size: baseFontSize },
-                            color: chartTextColorPicker ? chartTextColorPicker.value : '#666666'
+                            color: chartTextColorPicker ? chartTextColorPicker.value : '#404040'
                         },
                         grid: {
                             color: 'rgba(0, 0, 0, 0.1)'
@@ -2187,12 +2187,12 @@
                             display: !!yAxisTitleText, 
                             text: yAxisTitleText, 
                             font: { size: baseFontSize + 2 },
-                            color: chartTextColorPicker ? chartTextColorPicker.value : '#333333'
+                            color: chartTextColorPicker ? chartTextColorPicker.value : '#404040'
                         }, 
                         ticks: { 
                             font: { size: baseFontSize }, 
                             callback: function(value) { return value.toFixed(0) + "%" },
-                            color: chartTextColorPicker ? chartTextColorPicker.value : '#666666'
+                            color: chartTextColorPicker ? chartTextColorPicker.value : '#404040'
                         },
                         grid: {
                             color: 'rgba(0, 0, 0, 0.1)'
@@ -2204,11 +2204,11 @@
                             display: !!xAxisTitleText, 
                             text: xAxisTitleText, 
                             font: { size: baseFontSize + 2 },
-                            color: chartTextColorPicker ? chartTextColorPicker.value : '#333333'
+                            color: chartTextColorPicker ? chartTextColorPicker.value : '#404040'
                         }, 
                         ticks: { 
                             font: { size: baseFontSize },
-                            color: chartTextColorPicker ? chartTextColorPicker.value : '#666666'
+                            color: chartTextColorPicker ? chartTextColorPicker.value : '#404040'
                         },
                         grid: {
                             color: 'rgba(0, 0, 0, 0.1)'
@@ -2901,11 +2901,9 @@
         if (resetTextColorBtn) {
             resetTextColorBtn.addEventListener('click', function() {
                 if (chartTextColorPicker) {
-                    // Set text color based on background mode
-                    const textColor = chartBackgroundToggle && chartBackgroundToggle.checked ? '#ffffff' : '#333333';
-                    chartTextColorPicker.value = textColor;
+                    chartTextColorPicker.value = '#404040'; // Reset to dark gray
                     if (chartInstance) {
-                        updateChartTextColors(textColor);
+                        updateChartTextColors('#404040');
                     }
                 }
             });
@@ -2915,30 +2913,14 @@
         function updateChartTextColors(color) {
             if (!chartInstance) return;
             
-            // Update title color
-            if (chartInstance.options.plugins.title) {
-                chartInstance.options.plugins.title.color = color;
-            }
+            // In dark mode, we always use white. In light mode, use the selected color or default
+            const textColor = chartBackgroundToggle && chartBackgroundToggle.checked ? '#ffffff' : color || '#404040';
             
-            // Update legend labels color
-            if (chartInstance.options.plugins.legend && chartInstance.options.plugins.legend.labels) {
-                chartInstance.options.plugins.legend.labels.color = color;
-            }
+            // Set all text elements to the new color
+            if (chartTextColorPicker) chartTextColorPicker.value = textColor;
             
-            // Update X axis colors if it exists
-            if (chartInstance.options.scales && chartInstance.options.scales.x) {
-                chartInstance.options.scales.x.ticks.color = color;
-                chartInstance.options.scales.x.title.color = color;
-            }
-            
-            // Update Y axis colors if it exists
-            if (chartInstance.options.scales && chartInstance.options.scales.y) {
-                chartInstance.options.scales.y.ticks.color = color;
-                chartInstance.options.scales.y.title.color = color;
-            }
-            
-            // Update the chart
-            chartInstance.update();
+            // Recreate the chart with the new text color
+            generateChart(currentChartData.labels, currentChartData.datasets);
         }
 
         // Function to update dimensions instantly
@@ -3372,18 +3354,6 @@
                 generateChart(currentChartData.labels, currentChartData.datasets);
             }
         });
-
-        // Reset text color button event listener
-        if (resetTextColorBtn) {
-            resetTextColorBtn.addEventListener('click', function() {
-                if (chartTextColorPicker) {
-                    chartTextColorPicker.value = '#333333'; // Reset to dark gray
-                    if (chartInstance) {
-                        updateChartTextColors('#333333');
-                    }
-                }
-            });
-        }
 
         /**
          * Applies the chart dimensions from the input fields.
