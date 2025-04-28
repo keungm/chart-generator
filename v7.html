@@ -622,10 +622,19 @@
                     // Call original function and bind scope
                     originalFit.bind(chart.legend)();
                     
-                    // Add extra height for margin between legend and chart
-                    // Use the value from the UI slider, or default to 20px if not available
+                    // Get the margin value from the UI slider, or default to 20px
                     const marginValue = legendMargin ? parseInt(legendMargin.value, 10) : 20;
-                    this.height += marginValue;
+                    
+                    // Apply margin based on legend position
+                    const position = chart.options.plugins.legend.position;
+                    
+                    if (position === 'top' || position === 'bottom') {
+                        // For top or bottom position, add margin to height
+                        this.height += marginValue;
+                    } else if (position === 'left' || position === 'right') {
+                        // For left or right position, add margin to width
+                        this.width += marginValue;
+                    }
                 }
             }
         };
