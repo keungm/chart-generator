@@ -1188,18 +1188,16 @@
                         const colIdx = parseInt(this.dataset.colIndex);
                         const headerKey = this.dataset.header;
                         
-                        // Skip first column (labels) for instant updates
-                        if (colIdx > 0) {
-                            // Update the data
-                            if (dataUsesHeaders) {
-                                tableData[rowIdx][headerKey] = isNumeric(newValue) ? parseNumericValue(newValue) : newValue;
-                            } else {
-                                tableData[rowIdx][colIdx] = isNumeric(newValue) ? parseNumericValue(newValue) : newValue;
-                            }
-                            
-                            updateChartFromCellEdit(rowIdx, colIdx, headerKey, newValue);
-                            console.log(`Instant update data at [${rowIdx}, ${colIdx}] to ${newValue}`);
+                        // Update the data regardless of column
+                        if (dataUsesHeaders) {
+                            tableData[rowIdx][headerKey] = isNumeric(newValue) ? parseNumericValue(newValue) : newValue;
+                        } else {
+                            tableData[rowIdx][colIdx] = isNumeric(newValue) ? parseNumericValue(newValue) : newValue;
                         }
+                        
+                        // Update chart for all cells now
+                        updateChartFromCellEdit(rowIdx, colIdx, headerKey, newValue);
+                        console.log(`Instant update data at [${rowIdx}, ${colIdx}] to ${newValue}`);
                     });
                     
                     // Add keydown event to handle Enter key press
