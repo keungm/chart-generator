@@ -503,13 +503,6 @@
                      </div>
              </div>
              
-             <div class="mt-6 border-t border-gray-200 pt-4">
-                <h3 class="text-md font-medium text-gray-800 mb-3">Download</h3>
-                <p class="text-sm text-gray-500 mb-3">Download the generated chart as a PNG image (transparent background).</p>
-                <button id="downloadBtn" disabled class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded-md shadow transition duration-150 ease-in-out disabled:bg-gray-400">
-                    Download Chart (PNG)
-                </button>
-             </div>
         </div>
                 </div>
             </div>
@@ -657,7 +650,6 @@
 
         // --- DOM Elements ---
         const csvFileInput = document.getElementById('csvFile');
-        const downloadBtn = document.getElementById('downloadBtn');
         const chartContainer = document.getElementById('chartContainer');
         const chartCanvas = document.getElementById('myChart');
         const messageArea = document.getElementById('messageArea');
@@ -858,7 +850,6 @@
             
             if (chartTypeSelect) chartTypeSelect.disabled = true;
             if (colorPaletteSelect) colorPaletteSelect.disabled = true;
-            if (downloadBtn) downloadBtn.disabled = true;
             
             if (toggleUseFirstRowAsHeadersCheckbox) toggleUseFirstRowAsHeadersCheckbox.checked = true; // Default to using headers
             if (chartTitleInput) chartTitleInput.value = '';
@@ -2333,8 +2324,6 @@
                     plugins: [whiteBackgroundPlugin, legendMarginPlugin] 
                 });
                 
-                downloadBtn.disabled = false;
-                
                 // Populate/Update color selectors AFTER chart instance exists
                 populateColorSelectors(chartInstance.data.datasets);
                 
@@ -2380,7 +2369,6 @@
                 }
                 
                 chartPlaceholder.classList.remove('hidden'); 
-                downloadBtn.disabled = true; 
                 chartInstance = null; 
             }
         }
@@ -2612,7 +2600,6 @@
                 console.log("Reprocessing - Analysis failed, clearing chart.");
                 if (chartInstance) { chartInstance.destroy(); chartInstance = null; }
                 chartPlaceholder.classList.remove('hidden');
-                downloadBtn.disabled = true;
             }
         }
 
@@ -3043,97 +3030,6 @@
                 console.warn(`Invalid dimensions: ${newWidth}x${newHeight}`);
             }
         }
-
-        downloadBtn.addEventListener('click', () => {
-            if (!chartInstance || !chartCanvas || downloadBtn.disabled) {
-                showError("Cannot download.");
-                return;
-            }
-            
-            hideMessages();
-            showStatus(`Preparing ${chartWidth}px × ${chartHeight}px transparent chart for download...`);
-            
-            try {
-                const tempCanvas = document.createElement('canvas');
-                tempCanvas.width = chartWidth;
-                tempCanvas.height = chartHeight;
-                
-                const tempCtx = tempCanvas.getContext('2d');
-                if (!tempCtx) {
-                    throw new Error("Failed to get temporary context.");
-                }
-                
-                // Create a deep clone of the datasets to ensure we're not altering the original
-                const exportDatasets = JSON.parse(JSON.stringify(chartInstance.data.datasets));
-                
-                // Make sure opacity settings are preserved exactly as in the preview
-                exportDatasets.forEach((ds, i) => {
-                    const originalDs = chartInstance.data.datasets[i];
-                    // Copy exact background and border colors to ensure opacity is maintained
-                    ds.backgroundColor = originalDs.backgroundColor;
-                    ds.borderColor = originalDs.borderColor;
-                    ds.borderWidth = originalDs.borderWidth;
-                    
-                    
-                    // For pie charts, ensure backgroundColor is an array if needed
-                    if (chartInstance.config.type === 'pie' && Array.isArray(originalDs.backgroundColor)) {
-                        ds.backgroundColor = [...originalDs.backgroundColor];
-                    }
-                });
-                
-                // Create a new chart at the exact dimensions for download
-                const downloadConfig = {
-                    type: chartInstance.config.type,
-                    data: { 
-                        labels: currentChartData.labels, 
-                        datasets: exportDatasets
-                    },
-                    options: {
-                        responsive: false,
-                        maintainAspectRatio: false,
-                        // Copy most options from the current chart
-                        indexAxis: chartInstance.config.options.indexAxis,
-                        scales: chartInstance.config.options.scales,
-                        plugins: {
-                            title: chartInstance.config.options.plugins.title,
-                            legend: chartInstance.config.options.plugins.legend,
-                            tooltip: chartInstance.config.options.plugins.tooltip,
-                            // Disable white background for transparency
-                            whiteBackground: { enable: false }
-                        },
-                        animation: false
-                    }
-                };
-                
-                // Don't include the whiteBackgroundPlugin for transparent download
-                const tempChart = new Chart(tempCtx, downloadConfig);
-                
-                setTimeout(() => {
-                    try {
-                        const imageURL = tempCanvas.toDataURL('image/png');
-                        const link = document.createElement('a');
-                        link.href = imageURL;
-                        link.download = `chart_${chartWidth}x${chartHeight}_transparent.png`;
-                        document.body.appendChild(link);
-                        link.click();
-                        document.body.removeChild(link);
-                        
-                        showStatus(`Transparent chart downloaded (${chartWidth}×${chartHeight}px).`);
-                    } catch (renderError) {
-                        console.error("Error generating transparent PNG:", renderError);
-                        showError(`Failed to generate transparent PNG: ${renderError.message}.`);
-                    } finally {
-                        if (tempChart) {
-                            tempChart.destroy();
-                        }
-                    }
-                }, 150);
-            } catch (error) {
-                console.error("Error during PNG download setup:", error);
-                showError(`Failed to generate PNG image: ${error.message}.`);
-                statusMessageArea.classList.add('hidden');
-            }
-        });
 
         downloadSampleBtn.addEventListener('click', () => { /* ... (same as before) ... */ const sampleData = `Date,Product A,Product B,Product C\n2023-01-01,120,150,80\n2023-01-02,135,145,85\n2023-01-03,125,160,90\n2023-01-04,140,155,95\n2023-01-05,130,165,100`; const blob = new Blob([sampleData], { type: 'text/csv' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'chart_sample_data.csv'; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url); });
 
