@@ -372,6 +372,21 @@
                          <label for="yAxisTitleInput" class="block text-sm font-medium text-gray-700">Y-Axis Title:</label>
                          <input type="text" id="yAxisTitleInput" placeholder="Y-Axis label (optional)" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                      </div>
+                    
+                    <!-- Axis Tick Font Sizes -->
+                    <div class="mt-4 mb-2">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Axis Tick Font Size:</label>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label for="xAxisTickSize" class="block text-xs font-medium text-gray-700">X-Axis Ticks:</label>
+                                <input type="number" id="xAxisTickSize" min="8" max="20" value="12" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                            </div>
+                            <div>
+                                <label for="yAxisTickSize" class="block text-xs font-medium text-gray-700">Y-Axis Ticks:</label>
+                                <input type="number" id="yAxisTickSize" min="8" max="20" value="12" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                            </div>
+                        </div>
+                    </div>
                  </div>
                  
                  <hr class="border-gray-200">
@@ -680,6 +695,8 @@
         const chartTitleInput = document.getElementById('chartTitleInput');
         const xAxisTitleInput = document.getElementById('xAxisTitleInput');
         const yAxisTitleInput = document.getElementById('yAxisTitleInput');
+        const xAxisTickSize = document.getElementById('xAxisTickSize');
+        const yAxisTickSize = document.getElementById('yAxisTickSize');
         const toggleLegendCheckbox = document.getElementById('toggleLegend');
         const legendPosition = document.getElementById('legendPosition');
         const legendBoxWidth = document.getElementById('legendBoxWidth');
@@ -847,6 +864,8 @@
             if (chartTitleInput) chartTitleInput.value = '';
             if (xAxisTitleInput) xAxisTitleInput.value = '';
             if (yAxisTitleInput) yAxisTitleInput.value = '';
+            if (xAxisTickSize) xAxisTickSize.value = 12;
+            if (yAxisTickSize) yAxisTickSize.value = 12;
             
             // Update the toggle text based on transpose state
             updateHeaderToggleText();
@@ -1753,7 +1772,7 @@
                         color: chartTextColorPicker ? chartTextColorPicker.value : '#404040'
                     },
                     ticks: {
-                        font: { size: baseFontSize },
+                        font: { size: xAxisTickSize ? parseInt(xAxisTickSize.value, 10) : baseFontSize },
                         color: chartTextColorPicker ? chartTextColorPicker.value : '#404040'
                     },
                     grid: {
@@ -1770,7 +1789,7 @@
                         color: chartTextColorPicker ? chartTextColorPicker.value : '#404040'
                     },
                     ticks: {
-                        font: { size: baseFontSize },
+                        font: { size: yAxisTickSize ? parseInt(yAxisTickSize.value, 10) : baseFontSize },
                         color: chartTextColorPicker ? chartTextColorPicker.value : '#404040'
                     },
                     grid: {
@@ -1982,7 +2001,7 @@
                             color: chartTextColorPicker ? chartTextColorPicker.value : '#404040'
                         }, 
                         ticks: { 
-                            font: { size: baseFontSize },
+                            font: { size: xAxisTickSize ? parseInt(xAxisTickSize.value, 10) : baseFontSize },
                             color: chartTextColorPicker ? chartTextColorPicker.value : '#404040'
                         },
                         grid: {
@@ -1998,7 +2017,7 @@
                             color: chartTextColorPicker ? chartTextColorPicker.value : '#404040'
                         }, 
                         ticks: { 
-                            font: { size: baseFontSize },
+                            font: { size: yAxisTickSize ? parseInt(yAxisTickSize.value, 10) : baseFontSize },
                             color: chartTextColorPicker ? chartTextColorPicker.value : '#404040'
                         },
                         grid: {
@@ -2142,7 +2161,7 @@
                             color: chartTextColorPicker ? chartTextColorPicker.value : '#404040'
                         }, 
                         ticks: { 
-                            font: { size: baseFontSize },
+                            font: { size: xAxisTickSize ? parseInt(xAxisTickSize.value, 10) : baseFontSize },
                             color: chartTextColorPicker ? chartTextColorPicker.value : '#404040'
                         },
                         grid: {
@@ -2158,7 +2177,7 @@
                             color: chartTextColorPicker ? chartTextColorPicker.value : '#404040'
                         }, 
                         ticks: { 
-                            font: { size: baseFontSize },
+                            font: { size: xAxisTickSize ? parseInt(xAxisTickSize.value, 10) : baseFontSize },
                             color: chartTextColorPicker ? chartTextColorPicker.value : '#404040'
                         },
                         grid: {
@@ -2199,8 +2218,7 @@
                             color: chartTextColorPicker ? chartTextColorPicker.value : '#404040'
                         }, 
                         ticks: { 
-                            font: { size: baseFontSize }, 
-                            callback: function(value) { return value.toFixed(0) + "%" },
+                            font: { size: xAxisTickSize ? parseInt(xAxisTickSize.value, 10) : baseFontSize },
                             color: chartTextColorPicker ? chartTextColorPicker.value : '#404040'
                         },
                         grid: {
@@ -2216,7 +2234,7 @@
                             color: chartTextColorPicker ? chartTextColorPicker.value : '#404040'
                         }, 
                         ticks: { 
-                            font: { size: baseFontSize },
+                            font: { size: xAxisTickSize ? parseInt(xAxisTickSize.value, 10) : baseFontSize },
                             color: chartTextColorPicker ? chartTextColorPicker.value : '#404040'
                         },
                         grid: {
@@ -2745,6 +2763,24 @@
             if (chartInstance && chartInstance.options.scales && chartInstance.options.scales.y) {
                 chartInstance.options.scales.y.title.text = yAxisTitleInput.value;
                 chartInstance.options.scales.y.title.display = yAxisTitleInput.value !== '';
+                chartInstance.update();
+            }
+        });
+        
+        // Update X-axis tick size
+        xAxisTickSize.addEventListener('input', () => {
+            if (chartInstance && chartInstance.options.scales && chartInstance.options.scales.x) {
+                const fontSize = parseInt(xAxisTickSize.value, 10) || 12;
+                chartInstance.options.scales.x.ticks.font.size = fontSize;
+                chartInstance.update();
+            }
+        });
+        
+        // Update Y-axis tick size
+        yAxisTickSize.addEventListener('input', () => {
+            if (chartInstance && chartInstance.options.scales && chartInstance.options.scales.y) {
+                const fontSize = parseInt(yAxisTickSize.value, 10) || 12;
+                chartInstance.options.scales.y.ticks.font.size = fontSize;
                 chartInstance.update();
             }
         });
