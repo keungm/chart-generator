@@ -445,15 +445,15 @@
                                 <!-- Color assignment controls will be added here dynamically -->
                      </div>
              </div>
+             
+             <div class="mt-6 border-t border-gray-200 pt-4">
+                <h3 class="text-md font-medium text-gray-800 mb-3">Download</h3>
+                <p class="text-sm text-gray-500 mb-3">Download the generated chart as a PNG image (transparent background).</p>
+                <button id="downloadBtn" disabled class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded-md shadow transition duration-150 ease-in-out disabled:bg-gray-400">
+                    Download Chart (PNG)
+                </button>
+             </div>
         </div>
-
-                    <div class="mt-6 border-t border-gray-200 pt-4">
-                        <h3 class="text-md font-medium text-gray-800 mb-3">Download</h3>
-                        <p class="text-sm text-gray-500 mb-3">Download the generated chart as a PNG image (transparent background).</p>
-                        <button id="downloadBtn" disabled class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded-md shadow transition duration-150 ease-in-out disabled:bg-gray-400"> 
-                            Download Chart (PNG) 
-                        </button>
-                    </div>
                 </div>
             </div>
 
@@ -1957,18 +1957,32 @@
                         title: { 
                             display: !!yAxisTitleText, 
                             text: yAxisTitleText, 
-                            font: { size: baseFontSize + 2 } 
+                            font: { size: baseFontSize + 2 },
+                            color: chartTextColorPicker ? chartTextColorPicker.value : '#333333'
                         }, 
-                        ticks: { font: { size: baseFontSize } } 
+                        ticks: { 
+                            font: { size: baseFontSize },
+                            color: chartTextColorPicker ? chartTextColorPicker.value : '#666666'
+                        },
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.1)'
+                        }
                     }, 
                     y: { 
                         stacked: true, // Setting y-axis to stacked for proper stacking
                         title: { 
                             display: !!xAxisTitleText, 
                             text: xAxisTitleText, 
-                            font: { size: baseFontSize + 2 } 
+                            font: { size: baseFontSize + 2 },
+                            color: chartTextColorPicker ? chartTextColorPicker.value : '#333333'
                         }, 
-                        ticks: { font: { size: baseFontSize } } 
+                        ticks: { 
+                            font: { size: baseFontSize },
+                            color: chartTextColorPicker ? chartTextColorPicker.value : '#666666'
+                        },
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.1)'
+                        }
                     } 
                 }; 
                 
@@ -1987,7 +2001,63 @@
                 }); 
             }
             else if (selectedTypeOption === 'columnStacked100') { chartType = 'bar'; indexAxis = 'x'; scalesConfig.x.stacked = true; scalesConfig.y.stacked = true; pluginConfig.stacked100 = { enable: true, precision: 1 }; scalesConfig.y.ticks.callback = function(value) { return value.toFixed(0) + "%" }; datasetsForChart.forEach(ds => { ds.barPercentage = barPercentage; ds.categoryPercentage = categoryPercentage; }); }
-             else if (selectedTypeOption === 'barStacked100') { chartType = 'bar'; indexAxis = 'y'; scalesConfig.x.stacked = true; scalesConfig.y.stacked = true; pluginConfig.stacked100 = { enable: true, precision: 1 }; scalesConfig = { x: { stacked: true, beginAtZero: true, title: { display: !!yAxisTitleText, text: yAxisTitleText, font: { size: baseFontSize + 2 } }, ticks: { font: { size: baseFontSize }, callback: function(value) { return value.toFixed(0) + "%" } } }, y: { stacked: true, title: { display: !!xAxisTitleText, text: xAxisTitleText, font: { size: baseFontSize + 2 } }, ticks: { font: { size: baseFontSize } } } }; if (parseDates && !transposeEnabled) { scalesConfig.y.type = 'time'; scalesConfig.y.time = { parser: dateFormat, tooltipFormat: 'll', unit: 'day'}; } datasetsForChart.forEach(ds => { ds.barPercentage = barPercentage; ds.categoryPercentage = categoryPercentage; }); }
+             else if (selectedTypeOption === 'barStacked100') { 
+                chartType = 'bar'; 
+                indexAxis = 'y'; 
+                scalesConfig.x.stacked = true; 
+                scalesConfig.y.stacked = true; 
+                pluginConfig.stacked100 = { enable: true, precision: 1 }; 
+                scalesConfig = { 
+                    x: { 
+                        stacked: true, 
+                        beginAtZero: true, 
+                        title: { 
+                            display: !!yAxisTitleText, 
+                            text: yAxisTitleText, 
+                            font: { size: baseFontSize + 2 },
+                            color: chartTextColorPicker ? chartTextColorPicker.value : '#333333'
+                        }, 
+                        ticks: { 
+                            font: { size: baseFontSize }, 
+                            callback: function(value) { return value.toFixed(0) + "%" },
+                            color: chartTextColorPicker ? chartTextColorPicker.value : '#666666'
+                        },
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.1)'
+                        }
+                    }, 
+                    y: { 
+                        stacked: true, 
+                        title: { 
+                            display: !!xAxisTitleText, 
+                            text: xAxisTitleText, 
+                            font: { size: baseFontSize + 2 },
+                            color: chartTextColorPicker ? chartTextColorPicker.value : '#333333'
+                        }, 
+                        ticks: { 
+                            font: { size: baseFontSize },
+                            color: chartTextColorPicker ? chartTextColorPicker.value : '#666666'
+                        },
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.1)'
+                        }
+                    } 
+                }; 
+                
+                if (parseDates && !transposeEnabled) { 
+                    scalesConfig.y.type = 'time'; 
+                    scalesConfig.y.time = { 
+                        parser: dateFormat, 
+                        tooltipFormat: 'll', 
+                        unit: 'day'
+                    }; 
+                } 
+                
+                datasetsForChart.forEach(ds => { 
+                    ds.barPercentage = barPercentage; 
+                    ds.categoryPercentage = categoryPercentage; 
+                }); 
+            }
             else { /* column */ chartType = 'bar'; indexAxis = 'x'; datasetsForChart.forEach(ds => { ds.barPercentage = barPercentage; ds.categoryPercentage = categoryPercentage; }); }
 
             // Final Chart Options
@@ -3121,4 +3191,5 @@
     </script>
 </body>
 </html>
+
 
