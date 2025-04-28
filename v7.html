@@ -1839,7 +1839,59 @@
                     }
                 }); 
             }
-            else if (selectedTypeOption === 'bar') { chartType = 'bar'; indexAxis = 'y'; scalesConfig = { x: { stacked: false, beginAtZero: true, title: { display: !!yAxisTitleText, text: yAxisTitleText, font: { size: baseFontSize + 2 } }, ticks: { font: { size: baseFontSize } } }, y: { stacked: false, title: { display: !!xAxisTitleText, text: xAxisTitleText, font: { size: baseFontSize + 2 } }, ticks: { font: { size: baseFontSize } } } }; if (parseDates && !transposeEnabled) { scalesConfig.y.type = 'time'; scalesConfig.y.time = { parser: dateFormat, tooltipFormat: 'll', unit: 'day'}; } datasetsForChart.forEach(ds => { ds.barPercentage = barPercentage; ds.categoryPercentage = categoryPercentage; }); }
+            else if (selectedTypeOption === 'bar') { 
+                chartType = 'bar'; 
+                indexAxis = 'y'; 
+                scalesConfig = { 
+                    x: { 
+                        stacked: false, 
+                        beginAtZero: true, 
+                        title: { 
+                            display: !!yAxisTitleText, 
+                            text: yAxisTitleText, 
+                            font: { size: baseFontSize + 2 },
+                            color: chartTextColorPicker ? chartTextColorPicker.value : '#333333'
+                        }, 
+                        ticks: { 
+                            font: { size: baseFontSize },
+                            color: chartTextColorPicker ? chartTextColorPicker.value : '#666666'
+                        },
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.1)'
+                        }
+                    }, 
+                    y: { 
+                        stacked: false, 
+                        title: { 
+                            display: !!xAxisTitleText, 
+                            text: xAxisTitleText, 
+                            font: { size: baseFontSize + 2 },
+                            color: chartTextColorPicker ? chartTextColorPicker.value : '#333333'
+                        }, 
+                        ticks: { 
+                            font: { size: baseFontSize },
+                            color: chartTextColorPicker ? chartTextColorPicker.value : '#666666'
+                        },
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.1)'
+                        }
+                    } 
+                }; 
+                
+                if (parseDates && !transposeEnabled) { 
+                    scalesConfig.y.type = 'time'; 
+                    scalesConfig.y.time = { 
+                        parser: dateFormat, 
+                        tooltipFormat: 'll', 
+                        unit: 'day'
+                    }; 
+                } 
+                
+                datasetsForChart.forEach(ds => { 
+                    ds.barPercentage = barPercentage; 
+                    ds.categoryPercentage = categoryPercentage; 
+                }); 
+            }
             else if (selectedTypeOption === 'pie') { 
                 chartType = 'pie'; 
                 indexAxis = undefined; 
