@@ -628,8 +628,9 @@
                     // Apply margin based on legend position
                     const position = chart.options.plugins.legend.position;
                     
-                    if (position === 'top' || position === 'bottom') {
-                        // For top or bottom position, add margin to height
+                    // Skip for bottom position as we handle it with title padding instead
+                    if (position === 'top') {
+                        // For top position, add margin to height
                         this.height += marginValue;
                     } else if (position === 'left' || position === 'right') {
                         // For left or right position, add margin to width
@@ -1794,7 +1795,10 @@
                         padding: legendItemSpacing ? parseInt(legendItemSpacing.value, 10) : 10
                     },
                     title: {
-                        display: false
+                        // For bottom position, use title padding to create space between legend and chart
+                        display: (legendPosition && legendPosition.value === 'bottom'),
+                        text: '', // Empty text so it doesn't show but still adds spacing
+                        padding: legendMargin ? parseInt(legendMargin.value, 10) : 20
                     },
                     padding: legendPadding ? parseInt(legendPadding.value, 10) : 10
                 }, 
