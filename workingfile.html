@@ -2517,6 +2517,11 @@
             if (previewModeIndicator) {
                 previewModeIndicator.classList.add('hidden');
             }
+            
+            // Regenerate chart with current data if available
+            if (chartInstance && currentChartData.labels && currentChartData.labels.length > 0) {
+                generateChart(currentChartData.labels, currentChartData.datasets);
+            }
         }
 
         // Timer reference for preview indicator fade
@@ -3111,6 +3116,11 @@
                 if (chartInstance && previewModeEnabled) {
                     handleWindowResize();
                 }
+                
+                // Regenerate chart with current data if available
+                if (chartInstance && currentChartData.labels && currentChartData.labels.length > 0) {
+                    generateChart(currentChartData.labels, currentChartData.datasets);
+                }
             }
             
             function initResize(e) {
@@ -3251,12 +3261,16 @@
         // Add event listeners for input changes
         barPercentageInput.addEventListener('input', function() {
             barPercValueSpan.textContent = this.value;
-            updateChartDisplay();
+            if (chartInstance && currentChartData.labels && currentChartData.labels.length > 0) {
+                generateChart(currentChartData.labels, currentChartData.datasets);
+            }
         });
         
         categoryPercentageInput.addEventListener('input', function() {
             catPercValueSpan.textContent = this.value;
-            updateChartDisplay();
+            if (chartInstance && currentChartData.labels && currentChartData.labels.length > 0) {
+                generateChart(currentChartData.labels, currentChartData.datasets);
+            }
         });
         
         innerRadiusInput.addEventListener('input', function() {
