@@ -412,32 +412,36 @@
                          <!-- Legend Item Sizing -->
                          <div class="grid grid-cols-2 gap-2 mb-3">
                              <div>
-                                 <label for="legendBoxWidth" class="block mb-1 text-xs font-medium text-gray-700">Box Width:</label>
-                                 <input type="number" id="legendBoxWidth" value="15" class="block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                                 <label for="legendBoxWidth" class="block mb-1 text-xs font-medium text-gray-700">Box Width: <span id="legendBoxWidthValue">15</span>px</label>
+                                 <input type="range" id="legendBoxWidth" min="8" max="30" value="15" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
                              </div>
                              <div>
-                                 <label for="legendBoxHeight" class="block mb-1 text-xs font-medium text-gray-700">Box Height:</label>
-                                 <input type="number" id="legendBoxHeight" value="15" class="block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                                 <label for="legendBoxHeight" class="block mb-1 text-xs font-medium text-gray-700">Box Height: <span id="legendBoxHeightValue">15</span>px</label>
+                                 <input type="range" id="legendBoxHeight" min="8" max="30" value="15" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
                              </div>
                          </div>
                          
                          <!-- Spacing Controls -->
-                         <div class="mb-3">
-                             <label for="legendItemSpacing" class="block mb-1 text-xs font-medium text-gray-700">Item Gap:</label>
-                             <input type="number" id="legendItemSpacing" value="10" class="block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                         <div class="grid grid-cols-2 gap-2 mb-3">
+                             <div>
+                                 <label for="legendItemSpacing" class="block mb-1 text-xs font-medium text-gray-700">Item Gap: <span id="legendItemSpacingValue">10</span>px</label>
+                                 <input type="range" id="legendItemSpacing" min="0" max="30" value="10" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                             </div>
+                             <div>
+                                 <label for="legendPadding" class="block mb-1 text-xs font-medium text-gray-700">Padding: <span id="legendPaddingValue">10</span>px</label>
+                                 <input type="range" id="legendPadding" min="0" max="30" value="10" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                             </div>
                          </div>
                          
                          <!-- Legend Margin -->
                          <div class="mb-3">
-                             <label for="legendMargin" class="block mb-1 text-xs font-medium text-gray-700">Chart Margin:</label>
-                             <input type="number" id="legendMargin" value="20" class="block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                             <label for="legendMargin" class="block mb-1 text-xs font-medium text-gray-700">Chart Margin: <span id="legendMarginValue">20</span>px</label>
+                             <input type="range" id="legendMargin" min="0" max="50" value="20" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
                          </div>
                          
                          <!-- Legend Text Size -->
-                         <div class="mb-3">
-                             <label for="legendTextSize" class="block mb-1 text-sm font-medium text-gray-700">Text Size:</label>
-                             <input type="number" id="legendTextSize" value="12" class="block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
-                         </div>
+                         <label for="legendTextSize" class="block mb-1 text-sm font-medium text-gray-700">Text Size: <span id="legendTextSizeValue">12</span>px</label>
+                         <input type="range" id="legendTextSize" min="8" max="20" value="12" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
                      </div>
                  </div>
             </div>
@@ -1805,7 +1809,8 @@
                         display: (legendPosition && legendPosition.value === 'bottom'),
                         text: '', // Empty text so it doesn't show but still adds spacing
                         padding: legendMargin ? parseInt(legendMargin.value, 10) : 20
-                    }
+                    },
+                    padding: legendPadding ? parseInt(legendPadding.value, 10) : 10
                 }, 
                 tooltip: { enabled: true }, 
                 whiteBackground: { color: '#ffffff' }, 
@@ -2783,8 +2788,9 @@
         }
         
         // Legend box width change
-        if (legendBoxWidth) {
+        if (legendBoxWidth && legendBoxWidthValue) {
             legendBoxWidth.addEventListener('input', function() {
+                legendBoxWidthValue.textContent = this.value;
                 if (chartInstance) {
                     generateChart(currentChartData.labels, currentChartData.datasets);
                 }
@@ -2792,8 +2798,9 @@
         }
         
         // Legend box height change
-        if (legendBoxHeight) {
+        if (legendBoxHeight && legendBoxHeightValue) {
             legendBoxHeight.addEventListener('input', function() {
+                legendBoxHeightValue.textContent = this.value;
                 if (chartInstance) {
                     generateChart(currentChartData.labels, currentChartData.datasets);
                 }
@@ -2801,8 +2808,9 @@
         }
         
         // Legend item spacing change
-        if (legendItemSpacing) {
+        if (legendItemSpacing && legendItemSpacingValue) {
             legendItemSpacing.addEventListener('input', function() {
+                legendItemSpacingValue.textContent = this.value;
                 if (chartInstance) {
                     generateChart(currentChartData.labels, currentChartData.datasets);
                 }
@@ -2820,8 +2828,9 @@
         }
         
         // Legend Text Size Listener
-        if (legendTextSize) {
+        if (legendTextSize && legendTextSizeValue) {
             legendTextSize.addEventListener('input', function() {
+                legendTextSizeValue.textContent = this.value;
                 if (chartInstance) {
                     generateChart(currentChartData.labels, currentChartData.datasets);
                 }
@@ -2829,9 +2838,11 @@
         }
         
         // Legend Margin Listener
-        if (legendMargin) {
+        if (legendMargin && legendMarginValue) {
             legendMargin.addEventListener('input', function() {
+                legendMarginValue.textContent = this.value;
                 if (chartInstance) {
+
                     generateChart(currentChartData.labels, currentChartData.datasets);
                 }
             });
